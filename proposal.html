@@ -8,7 +8,7 @@
 <body>
 
 <div class="constrainedWidth">
-  
+
 <div style="padding-bottom: 10px;">
 <div class="title smallTitle">Project Proposal:</div>
 <div class="title" style="width: 900px; padding-bottom: 6px; border-bottom: #000000 2px solid;">
@@ -29,31 +29,60 @@
 <div class="section">Challenge</div>
 
 <div class="section">Resources</div>
-
+<p>
+We will be working from several papers which have demonstrated GPU based
+speedups in factorization, including &quot;<a href="bernstein.pdf">ECM on
+Graphics Cards</a>&quot; and &quot;<a href="lin.pdf">Efficient
+Paralles RSA Decryption Algorithm for Many-Core GPUs with CUDA</a>,&quot; which
+gives detailed explanations of GPU based implementations of various
+factorization algorithms.  Our choice of which algorithm we'll use will be
+affected by both our understanding of the material and the viability of a GPU
+based implementation.
+</p><p>
+This paper does not detail the implementation of the large integer
+type, which will be necessary, so we will also either need to find a suitable
+library or implement these features from scratch.  One possible candidate for
+a CUDA based large integer library is
+<a href="http://www.hpcs.cs.tsukuba.ac.jp/~nakayama/cump/">CUMP</a>.  This
+library is incomplete, however, and would need to be extended with several
+modular and euclidean arithmetic functions.  One downside to using library is
+that it seems that it is not currently being maintained.
+</p><p>
+In order to implement a CUDA based piece of software, we will need to
+use some machines that have CUDA-enabled GPUs.  For this purpose, we intend to
+use the machines in the Gates-Hillman Center which have GPUs.
+</p><p>
+Depending on the progress made on this project, we may attempt to implement a
+distributed GPU algorithm, which would probably make use of the Open MPI
+library, and several of the CUDA enabled machines in the GHC.
+</p>
 <div class="section">Goals/Deliverables</div>
 
 <div class="section">Platform</div>
-
+<p>
+We choose to use CUDA for this task because most of the fastest factorization
+algorithms are parallelizable.  We also enjoyed using CUDA and think that it is
+an exciting platform to develop on, since there are many important algorithms
+(factorization included) which have not yet been completely explored on the GPU.
+We have also found several papers in which promising speedups have been
+realized.
+</p>
 <div class="section">Proposed Schedule</div>
-
-<div class="comment">[Please do not modify the schedule on this page
-after the proposal process (it is your proposed schedule, and it will
-be useful to compare it to your actually project logs at the end of
-the project).  Update the schedule on your project main page if your
-goals or timeline changes over the course of the project.]</div>
-
 <p>
 <table class="projectSchedule">
 <tr>
   <td width="110"><span style="font-weight: bold;">Week</span></td>
   <td width="380"><span style="font-weight: bold;">What We Plan To Do</span></td>
 </tr>
-<tr><td>Apr 1-7</td><td>&nbsp;</td></tr>
-<tr><td>Apr 8-14</td><td>&nbsp;</td></tr>
-<tr><td>Apr 15-21</td><td>&nbsp;</td></tr>
-<tr><td>Apr 22-28</td><td>&nbsp;</td></tr>
-<tr><td>Apr 29-May 5</td><td>&nbsp;</td></tr>
-<tr><td>May 6-11</td><td>&nbsp;</td></tr>
+<tr><td>Apr 1-7</td><td>&nbsp;Decide on a project.></tr>
+<tr><td>Apr 8-14</td><td>&nbsp;Create proposal, choose algorithm,
+    choose/implement multiple precision library</td></tr>
+<tr><td>Apr 15-21</td><td>&nbsp;Finalize multiple precision implementation,
+    begin GPU based implementation, ignoring</td></tr>
+<tr><td>Apr 22-28</td><td>&nbsp;Continue work on GPU implementation</td></tr>
+<tr><td>Apr 29-May 5</td><td>&nbsp;Continue work on GPU implementation</td></tr>
+<tr><td>May 6-11</td><td>&nbsp;Finish GPU based implementation, stretch
+    goals</td></tr>
 </table>
 </p>
 
