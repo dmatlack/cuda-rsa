@@ -12,21 +12,54 @@
 <div style="padding-bottom: 10px;">
 <div class="title smallTitle">Project Proposal:</div>
 <div class="title" style="width: 900px; padding-bottom: 6px; border-bottom: #000000 2px solid;">
-  [PROJECT TITLE HERE]
+  CUDA Factor
 </div>
 </div>
 
 <div class="boldText">
-<div>[YOUR NAMES HERE]</div>
+<div>AJ Kaufmann &amp; David Matlack</div>
 </div>
 
 <div style="padding-top: 1em;"><a href="index.html">Main Project Page</a></div>
 
 <div class="section">Summary</div>
+Efficiently factor large numbers using CUDA.
 
 <div class="section">Background</div>
 
+<p>There are many algorithms designed to factor large prime numbers quickly.
+Pollard's p-1 Algorithm takes advantage of Fermat's Little Theorem to find 
+factors of a compound number n. The algorithm is not inherently parallel and 
+is limited in the number of factors it can find as the size of n increases.
+A better, and inherently parallel algorithm, is Lenstra's Elliptic Curve
+algorithm. It's inherent parallelism makes it an attractive algorithm but it is
+quite complicated.</p>
+
+<p>One application of finding prime factors is in RSA
+RSA is a popular asymmetric cryptographic algorithm. An asymmetric cryptographic
+algorithm is one that uses two different keys, one public and one private, to encrypt
+and decrypt messages. Thus in order to break RSA, we must determine the private key
+from the public key. In RSA, the public key is a tuple (n, e) where n is a large
+number with two large prime factors, p and q. The private key is d. If we can compute
+p and q from n, then we can determine d. Thus beging able to find the prime factors
+of large numbers is the key to breaking RSA. More information on the algorithm can 
+be found on the <a href="http://en.wikipedia.org/wiki/RSA_(algorithm)">Wikipedia</a>
+page for RSA.</p>
+
+
 <div class="section">Challenge</div>
+<p>The challenges in implementing a prime number factorization algorithm is twofold.
+First, we will be doing math operations on numbers much larger than can be held
+in typical x86 primitives. Normally there are many libraries that exist to run 
+multiple precision arithmetic, but there aren't any complete libraries available 
+for CUDA. There exists a partially implemented port of the GNU Multiple Precision
+library called <a href="http://www.hpcs.cs.tsukuba.ac.jp/~nakayama/cump/">CUMP</a>. 
+We may have to extend this library or write the instructions we need from scratch.</p>
+
+<p>The other challenge is in choosing an algorithm to do factorization and 
+implementing it. All of the algorithms are inherently complex. In addition, if we
+choose to implement Pollard's p-1 Algorithm, we will have to figure out how to
+efficiently parallelize it.</p>
 
 <div class="section">Resources</div>
 <p>
@@ -57,6 +90,19 @@ distributed GPU algorithm, which would probably make use of the Open MPI
 library, and several of the CUDA enabled machines in the GHC.
 </p>
 <div class="section">Goals/Deliverables</div>
+The goals are as follows:
+<ol>
+  <li>Implement the basic multiple precision functions needed (e.g. multiplication,
+  subtraction, division, addition, modulus)</li>
+  <li>Implement the chosen factoring algorithm.</li>
+</ol>
+
+Some stretch goals:
+<ol>
+  <li>Interface our factorization code with RSA.</li>
+  <li>Extend CUMP or write a somewhat complete library for doing multiple precision
+      arithmetic on CUDA.</li>
+</ol>
 
 <div class="section">Platform</div>
 <p>
