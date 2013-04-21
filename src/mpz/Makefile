@@ -2,36 +2,31 @@
 #
 # Multiple Precision Integers Library Makefile
 #
-# by David Matlack
-#
 #####################################################################
 
-EXE = main
+CXX=g++ -m64
+CXXFLAGS=-g -DDEBUG -Wall -Wextra -I/usr/local/cuda/include
 
-SRC = digit.c mpz.c main.c
-OBJ = $(SRC:.c=.o)
+NVCC = nvcc
+NVCCFLAGS = -g -G -m64 -arch compute_20
 
-SRC_DIR = .
-OBJ_DIR = obj
+LIBS += cudart
+LDLIBS = $(addprefix -l, $(LIBS))
+LDFLAGS = -L/usr/local/cuda/lib64/ -lcudart
 
-SRC_FULL = $(addprefix $(SRC_DIR)/, $(SRC))
-OBJ_FULL = $(addprefix $(OBJ_DIR)/, $(OBJ))
+CUDA_FILES = digit.cu string.cu mpz.cu
+KERNEL = kernel.cu
+MAIN = main.cpp
 
-CC = gcc
-CCFLAGS += -Wall -Wextra -Werror -g -DDEBUG
-LDFLAGS += 
+default: $(CUDA_FILES) $(KERNEL) $(MAIN)
+		mkdir -p obj
+		$(NVCC) $(NVCCFLAGS) $(KERNEL) -c -o obj/$(KERNEL:.cu=.o)
+		$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LDLIBGS) $(MAIN) -c -o obj/$(MAIN:.cpp=.o)
+		$(CXX) $(LDFLAGS) $(LDLIBGS) obj/* -o main
 
-.PHONY: target
-
-$(shell mkdir -p $(OBJ_DIR))
-
-target: $(EXE)
-
-$(EXE): $(OBJ_FULL)
-	$(CC) $(CCFLAGS) $(LDFLAGS) -o $@ $^
-
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
-	$(CC) $(CCFLAGS) -c -o $@ $<
+%.cu:
+%.cpp:
 
 clean:
-	rm -rf $(EXE) $(OBJ_DIR)
+	rm -rf obj/
+	rm -f main
