@@ -22,7 +22,7 @@ inline int abs(int a) { return (a < 0) ? -a : a; }
 
 #else /* when compiling with nvcc ... */
 
-#endif
+#endif /* __CUDACC__ */
 
 #include "cuda_string.h"
 #include "digit.h"
@@ -39,7 +39,7 @@ typedef struct {
 /** @brief Called if the program runs out of memory */
 __device__ __host__ void mpz_memory_error(const char *function) {
 #ifndef __CUDACC__
-  printf("Unable to allocate memory in %s!!!!\n", function);
+  printf("Unable to allocate memory in %s!\n", function);
   exit(42);
 #else
   //TODO
@@ -214,7 +214,7 @@ __device__ __host__ void mpz_destroy(mpz_t *mpz) {
  *      dst := src1 + src2
  * 
  * @warning It is assumed that all mpz_t parameters have been initialized.
- * @warning Assumes that src1 and src2 are positive.
+ * @warning Assumes dst != src1 != src2
  */
 __device__ __host__ void mpz_add(mpz_t *dst, mpz_t *src1, mpz_t *src2) {
   int src1_digit_count = mpz_count_digits(src1);
@@ -263,11 +263,13 @@ __device__ __host__ void mpz_add(mpz_t *dst, mpz_t *src1, mpz_t *src2) {
     if (mpz_is_negative(src1)) digits_complement(src1->digits, src1->max_digits);
     if (mpz_is_negative(src2)) digits_complement(src2->digits, src2->max_digits);
   }
-
 }
 
 /**
- * @breif Perform dst := src1 - src2.
+ * @brief Perform dst := src1 - src2.
+ *
+ * @warning Assumes that all mpz_t parameters have been initialized.
+ * @warning Assumes dst != src1 != src2
  */
 __device__ __host__ void mpz_sub(mpz_t *dst, mpz_t *src1, mpz_t *src2) {
   src2->sign *= -1;

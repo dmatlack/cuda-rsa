@@ -17,7 +17,7 @@
 
 #include <string.h>
 
-#endif 
+#endif /* __CUDACC__ */
 
 typedef unsigned char digit_t;
 
