@@ -45,16 +45,17 @@ int main(int argc, char **argv) {
   run_addition_kernel(A[0], B[0], C[0], NUM_STRINGS);
 
   for (i = 0; i < NUM_STRINGS; i++) {
-    printf("Checking %s + %s ... ", A[i], B[i]);
     if (!strcmp(correct[i], C[i])) {
-      printf("PASS\n");
+      printf(".");
     }
     else {
-      printf("FAIL\n");
-      printf("\tExpected: %s\n", correct[i]);
-      printf("\tGot:      %s\n", C[i]);
+      printf("\nFAIL ");
+      printf("%s + %s = ", A[i], B[i]);
+      printf("[Expected: %s, ", correct[i]);
+      printf("Got: %s]\n", C[i]);
     }
   }
 
+  printf("\n");
   return 0;
 }

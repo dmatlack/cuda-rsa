@@ -8,31 +8,42 @@
 #ifndef __418_MPZ_H__
 #define __418_MPZ_H__
 
-#ifndef __CUDACC__ /* when compiling with gcc... */
+#ifndef __CUDACC__ /* when compiling with g++ ... */
 
 #define __device__
 #define __host__
 
 #include <stdlib.h>
+#include <stdio.h>
 
-static inline unsigned max(unsigned a, unsigned b) { return (a > b) ? a : b; }
-static inline unsigned min(unsigned a, unsigned b) { return (a < b) ? a : b; }
+inline unsigned max(unsigned a, unsigned b) { return (a > b) ? a : b; }
+inline unsigned min(unsigned a, unsigned b) { return (a < b) ? a : b; }
+inline int abs(int a) { return (a < 0) ? -a : a; }
+
+#else /* when compiling with nvcc ... */
 
 #endif
 
 #include "cuda_string.h"
 #include "digit.h"
 
+#define DEFAULT_INITIAL_MAX_DIGITS 64
+
 /** @breif struct used to represent multiple precision integers (Z) */
 typedef struct {
   digit_t     *digits;       // an array of digits, in little endian order
   unsigned     max_digits;   // the capacity of the digits array
+  int          sign;         // +1 or -1
 } mpz_t;
 
 /** @brief Called if the program runs out of memory */
-__device__ __host__ void mpz_memory_error(char *function) {
-  (void) function;
-  // TODO
+__device__ __host__ void mpz_memory_error(const char *function) {
+#ifndef __CUDACC__
+  printf("Unable to allocate memory in %s!!!!\n", function);
+  exit(42);
+#else
+  //TODO
+#endif
 }
 
 /**
@@ -64,49 +75,99 @@ __device__ __host__ unsigned mpz_count_digits(mpz_t *mpz) {
   return count;
 }
 
+inline __device__ __host__ int mpz_is_negative(mpz_t *mpz) {
+  return mpz->sign == -1;
+}
+
+inline __device__ __host__ void mpz_negate(mpz_t *mpz) {
+  mpz->sign *= -1;
+}
+
+
 /**
  * @brief Check that the given mpz_t struct has room for num_digits. If not,
- * allocate memory for enough digits.
+ * allocate memory for enough digits and copy the old contents to the new
+ * array of digits.
  *
  * We currently only grow the mpz structs as we need more room for digits. 
+ * Maybe in the future we will want to shrink the digit array? Probably not
+ * though.
  */
-__device__ __host__ void mpz_ensure_mem(mpz_t *mpz, unsigned num_digits) {
+__device__ __host__ void mpz_ensure_mem(mpz_t *mpz, unsigned new_max_digits) {
+  digit_t *new_digits;
   unsigned i;
   
-  if (mpz->max_digits < num_digits) {
+  if (mpz->max_digits < new_max_digits) {
+    
+    /* Find the next power of 2 digits that gives us at least new_max_digits */
+    unsigned find_new_max = DEFAULT_INITIAL_MAX_DIGITS;
+    while (find_new_max < new_max_digits) find_new_max *= 2;
+    new_max_digits = find_new_max;
+
+    new_digits = (digit_t *) malloc (new_max_digits * sizeof(digit_t));
+
+    if (NULL == new_digits) mpz_memory_error("mpz_alloc");
+
+    /* Copy the old data over */
+    for (i = 0; i < new_max_digits; i++) {
+      if (i < mpz->max_digits) new_digits[i] = mpz->digits[i];
+      else mpz->digits[i] = 0;
+    }
+
+    /* Free the old digits array */
     if (mpz->max_digits > 0) free(mpz->digits);
 
-    mpz->digits = (digit_t *) malloc (num_digits * sizeof(digit_t));
-    mpz->max_digits = num_digits;
+    mpz->digits = new_digits;
+    mpz->max_digits = new_max_digits;
 
-    for (i = 0; i < num_digits; i++) {
-      mpz->digits[i] = 0;
-    }
-    
-
-    if (NULL == mpz->digits) mpz_memory_error("mpz_alloc");
   }
 
 }
 
 /**
- * @brief Intialize the mpz_t struct with no intial value.
+ * @brief Set the mpz_t struct to zero.
  */
+__device__ __host__ void mpz_clear(mpz_t *mpz) {
+  unsigned i;
+
+  for (i = 0; i < mpz->max_digits; i++) {
+    mpz->digits[i] = 0;
+  }
+}
+
 __device__ __host__ void mpz_init(mpz_t *mpz) {
-  mpz->max_digits = 0;
+  mpz->digits = (digit_t *) malloc 
+                (sizeof(digit_t) * DEFAULT_INITIAL_MAX_DIGITS);
+
+  if (mpz->digits == NULL) mpz_memory_error("mpz_init");
+
+  mpz->max_digits = DEFAULT_INITIAL_MAX_DIGITS;
+
+  mpz_clear(mpz);
+
+  mpz->sign = 1;
 }
 
 /**
- * @brief Set the mpz integer to the provided unsigned integer.
+ * @brief Set the mpz integer to the provided integer.
  *
  * @warning Assumes the mpz struct has been initialized.
  */
-__device__ __host__ void mpz_set_ui(mpz_t *mpz, unsigned int z) {
-  const unsigned initial_capacity = 64; // digits
+__device__ __host__ void mpz_set_i(mpz_t *mpz, int z) {
+  unsigned i;
 
-  mpz_ensure_mem(mpz, initial_capacity);
+  mpz_ensure_mem(mpz, 10);
+  mpz_clear(mpz);
 
-  digits_parse(mpz->digits, mpz->max_digits, z);
+  mpz->sign = (z < 0) ? -1 : 1;
+
+  z = abs(z);
+
+  i = 0;
+  while (z > 0 && i < mpz->max_digits) {
+    mpz->digits[i++] = z % 10;
+    z /= 10;
+  }
 }
 
 /**
@@ -114,18 +175,29 @@ __device__ __host__ void mpz_set_ui(mpz_t *mpz, unsigned int z) {
  *
  * @warning Assumes the mpz struct has been initialized.
  */
-__device__ __host__ void mpz_set_str(mpz_t *mpz, char *str) {
-  unsigned num_digits = cuda_strlen(str);
+__device__ __host__ void mpz_set_str(mpz_t *mpz, const char *str) {
+  unsigned num_digits;
   unsigned i;
 
+  /* Check if the provided number is negative */
+  if (str[0] == '-') {
+    mpz->sign = -1;
+    str++; // the number starts at the next character
+  }
+  else {
+    mpz->sign = 1;
+  }
+
+  num_digits = cuda_strlen(str);
+
   mpz_ensure_mem(mpz, num_digits);
+  mpz_clear(mpz);
 
   for (i = 0; i < num_digits; i++) {
     /* parse the string backwards (little endian order) */
     mpz->digits[i] = digit_fromchar(str[num_digits - i - 1]);
   }
 
-  mpz->max_digits = num_digits;
 }
 
 /**
@@ -133,6 +205,30 @@ __device__ __host__ void mpz_set_str(mpz_t *mpz, char *str) {
  */
 __device__ __host__ void mpz_destroy(mpz_t *mpz) {
   free(mpz->digits);
+  mpz->max_digits = 0;
+}
+
+/**
+ * @brief Perform dst = src1 + src2
+ *
+ * ASSUMES that all parameters have enough digit space to do the addition.
+ * DOES NOT account for negative numbers.
+ * 
+ * @return The carry out.
+ */
+inline __device__ __host__ digit_t _mpz_add(mpz_t *dst, 
+                                            mpz_t *src1, mpz_t *src2) {
+  unsigned i = 0;
+  digit_t carry = 0;
+
+  for (i = 0; i < dst->max_digits; i++) {
+    digit_t a = src1->digits[i];
+    digit_t b = src2->digits[i];
+
+    dst->digits[i] = digit_add(a, b, &carry);
+  }
+
+  return carry;
 }
 
 /**
@@ -151,11 +247,51 @@ __device__ __host__ void mpz_add(mpz_t *dst, mpz_t *src1, mpz_t *src2) {
    * the result of the addition will have at most D + 1 digits. */
   int max_digits = max(src1_digit_count, src2_digit_count) + 1;
 
-  mpz_ensure_mem(dst, max_digits);
+  /* Make sure all of the mpz structs have enough memory to hold all of
+   * the digits. We will be doing 10's complement so everyone needs to 
+   * have enough digits. */
+  mpz_ensure_mem(dst,  max_digits);
+  mpz_ensure_mem(src1, max_digits);
+  mpz_ensure_mem(src2, max_digits);
 
-  digits_add(dst->digits, dst->max_digits, 
-             src1->digits, src1->max_digits,
-             src2->digits, src2->max_digits);
+  mpz_clear(dst);
+
+  /* If both are negative, treate them as positive and negate the result */
+  if (mpz_is_negative(src1) && mpz_is_negative(src2)) {
+    _mpz_add(dst, src1, src2);
+    dst->sign = -1;
+  }
+  else {
+    digit_t carry_out;
+
+    /* Perform 10's complement on negative numbers before adding */
+    if (mpz_is_negative(src1)) digits_complement(src1->digits, src1->max_digits);
+    if (mpz_is_negative(src2)) digits_complement(src2->digits, src2->max_digits);
+
+    carry_out = _mpz_add(dst, src1, src2);
+    
+    if (carry_out == 0 && (mpz_is_negative(src1) || mpz_is_negative(src2))) {
+      digits_complement(dst->digits, dst->max_digits);
+      dst->sign = -1;
+    }
+    else {
+      dst->sign = 1;
+    }
+
+    /* Undo the 10s complement after adding */
+    if (mpz_is_negative(src1)) digits_complement(src1->digits, src1->max_digits);
+    if (mpz_is_negative(src2)) digits_complement(src2->digits, src2->max_digits);
+  }
+
+}
+
+/**
+ * @breif Perform dst := src1 - src2.
+ */
+__device__ __host__ void mpz_sub(mpz_t *dst, mpz_t *src1, mpz_t *src2) {
+  src2->sign *= -1;
+  mpz_add(dst, src1, src2);
+  src2->sign *= -1;
 }
 
 /**
@@ -164,18 +300,25 @@ __device__ __host__ void mpz_add(mpz_t *dst, mpz_t *src1, mpz_t *src2) {
  */
 __device__ __host__ int mpz_equal(mpz_t *a, mpz_t *b) {
   unsigned i;
-  unsigned min_digits;
+  unsigned max_digits;
+  int is_zero = 1;
 
-  min_digits = min(a->max_digits, b->max_digits);
+  max_digits = max(a->max_digits, b->max_digits);
 
-  for (i = 0; i < min_digits; i++) {
+  for (i = 0; i < max_digits; i++) {
     digit_t ad = (i < a->max_digits) ? a->digits[i] : 0;
     digit_t bd = (i < b->max_digits) ? b->digits[i] : 0;
+
+    is_zero = is_zero && (ad == 0);
     
     if (ad != bd) return 0;
   }
 
-  return 1;
+  /* Both numbers are either zero (in which case they are equal
+   * and we don't care about the sign), or they have equivalent 
+   * digits (in which case we just need to make sure their signs
+   * match) */
+  return (is_zero) || (a->sign == b->sign);
 }
 
 /**
@@ -189,6 +332,7 @@ __device__ __host__ char* mpz_get_str(mpz_t *mpz, char *buf, unsigned bufsize) {
   char *str;
   int print_zeroes = 0; // don't print leading 0s
   int i, str_index = 0;
+  int prefix_index = 0;
 
   (void) bufsize;
 
@@ -199,16 +343,27 @@ __device__ __host__ char* mpz_get_str(mpz_t *mpz, char *buf, unsigned bufsize) {
     str = (char *) malloc (sizeof(char) * (mpz->max_digits + 1));
   }
 
+  if (mpz_is_negative(mpz)) {
+    str[0] = '-';
+    prefix_index = 1;
+  }
+
   for (i = mpz->max_digits - 1; i >= 0; i--) {
     int digit = mpz->digits[i];
 
     if (digit != 0 || print_zeroes) {
       print_zeroes = 1;
-      str[str_index++] = digit_tochar(digit);
+      str[prefix_index + str_index++] = digit_tochar(digit);
     }
   }
 
-  str[str_index] = (char) 0;
+  str[prefix_index + str_index] = (char) 0;
+
+  /* the number is zero */
+  if (str_index == 0) {
+    str[0] = '0';
+    str[1] = (char) 0;
+  }
 
   return str;
 }

@@ -38,27 +38,11 @@ __device__ __host__ int digits_is_zero(digit_t *digits,
 }
 
 /**
- * @brief Parse an unsigned int into an array of digits.
- */
-__device__ __host__ void digits_parse(digit_t *digits, unsigned num_digits, 
-                                      unsigned ui) {
-  unsigned i;
-  
-  memset(digits, 0, num_digits * sizeof(digit_t));
-
-  i = 0;
-  while (ui > 0 && i < num_digits) {
-    digits[i++] = ui % 10;
-    ui /= 10;
-  }
-}
-
-/**
  * @brief Find the result of a + b + carry. Store the resulting carry of this
  * operation back in the carry pointer.
  */
 __device__ __host__ digit_t digit_add(digit_t a, digit_t b, 
-                                        digit_t *carry) {
+                                      digit_t *carry) {
   digit_t result = a + b + *carry;
 
   if (result >= DIGIT_BASE) {
@@ -72,9 +56,29 @@ __device__ __host__ digit_t digit_add(digit_t a, digit_t b,
   return result;
 }
 
-__device__ __host__ void digits_add(digit_t *sum, unsigned sum_num_digits, 
-                                    digit_t *op1, unsigned op1_num_digits,
-                                    digit_t *op2, unsigned op2_num_digits) {
+__device__ __host__ void digits_complement(digit_t *digits, 
+                                           unsigned num_digits) {
+  digit_t carry = 0;
+  unsigned i;
+
+  // Complement each digit
+  for (i = 0; i < num_digits; i++) {
+    digits[i] = (DIGIT_BASE - 1) - digits[i];
+  }
+
+  // Add 1
+  i = 0;
+  carry = 1;
+  while (carry != 0) {
+    digits[i] = digit_add(digits[i], 0, &carry);
+    i++;
+  }
+
+}
+
+__device__ __host__ digit_t digits_add(digit_t *sum, unsigned sum_num_digits, 
+                                       digit_t *op1, unsigned op1_num_digits,
+                                       digit_t *op2, unsigned op2_num_digits) {
   digit_t carry = 0;
   unsigned i;
 
@@ -84,6 +88,8 @@ __device__ __host__ void digits_add(digit_t *sum, unsigned sum_num_digits,
 
     sum[i] = digit_add(a, b, &carry);
   }
+
+  return carry;
 }
 
 __device__ __host__ char digit_tochar(digit_t d) {

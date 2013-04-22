@@ -42,11 +42,11 @@ __global__ void additionKernel(char *devA, char *devB, char *devC, unsigned coun
     global_str = devC + (index * STRING_MAX_SIZE); 
 
     memcpy(global_str, str, cuda_strlen(str) + 1);
-
-    mpz_destroy(&sum);
-    mpz_destroy(&op1);
-    mpz_destroy(&op2);
   }
+
+  mpz_destroy(&sum);
+  mpz_destroy(&op1);
+  mpz_destroy(&op2);
 }
 
 void run_addition_kernel(char *A, char *B, char *C, unsigned num_strings) {
