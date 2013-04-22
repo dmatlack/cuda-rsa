@@ -6,6 +6,8 @@ MPZ stands for Multiple Precision Integer (Z = integers in math).
 The MPZ code is structured so that it can be compiled by nvcc for
 use in CUDA kernels, or by g++ for use on the cpu.
 
-To use the MPZ code, just include "mpz.h" in your source file.
+To use the MPZ code, just `#include "mpz.h"` in your source file.
 
 The available mpz functions are documented in mpz.h.
+
+For examples on how to run on the GPU and CPU, see the Makefile.

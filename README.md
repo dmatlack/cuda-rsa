@@ -1,4 +1,4 @@
 cuda-rsa
 ========
 
-Project website: dmatlack.github.io/cuda-rsa
+(Project Site)[dmatlack.github.io/cuda-rsa]
