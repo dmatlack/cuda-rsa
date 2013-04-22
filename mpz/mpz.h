@@ -8,6 +8,18 @@
 #ifndef __418_MPZ_H__
 #define __418_MPZ_H__
 
+#ifndef __CUDACC__ /* when compiling with gcc... */
+
+#define __device__
+#define __host__
+
+#include <stdlib.h>
+
+static inline unsigned max(unsigned a, unsigned b) { return (a > b) ? a : b; }
+static inline unsigned min(unsigned a, unsigned b) { return (a < b) ? a : b; }
+
+#endif
+
 #include "cuda_string.h"
 #include "digit.h"
 
@@ -19,6 +31,7 @@ typedef struct {
 
 /** @brief Called if the program runs out of memory */
 __device__ __host__ void mpz_memory_error(char *function) {
+  (void) function;
   // TODO
 }
 
@@ -58,7 +71,7 @@ __device__ __host__ unsigned mpz_count_digits(mpz_t *mpz) {
  * We currently only grow the mpz structs as we need more room for digits. 
  */
 __device__ __host__ void mpz_ensure_mem(mpz_t *mpz, unsigned num_digits) {
-  int i;
+  unsigned i;
   
   if (mpz->max_digits < num_digits) {
     if (mpz->max_digits > 0) free(mpz->digits);
@@ -176,6 +189,8 @@ __device__ __host__ char* mpz_get_str(mpz_t *mpz, char *buf, unsigned bufsize) {
   char *str;
   int print_zeroes = 0; // don't print leading 0s
   int i, str_index = 0;
+
+  (void) bufsize;
 
   if (buf != NULL) {
     str = buf;

@@ -4,8 +4,8 @@
 #
 #####################################################################
 
-CXX=g++ -m64
-CXXFLAGS=-g -DDEBUG -Wall -Wextra -I/usr/local/cuda/include
+CXX = g++ -m64
+CXXFLAGS = -g -DDEBUG -Wall -Wextra -I/usr/local/cuda/include
 
 NVCC = nvcc
 NVCCFLAGS = -g -G -m64 -arch compute_20
@@ -18,23 +18,30 @@ LDFLAGS = -L/usr/local/cuda/lib64/ -lcudart
 # Files we don't compile with directly, but we want Make to know that we
 # depend on them
 ###
-CUDA_FILES = cuda_string.h digit.h mpz.h
+OTHER_FILES = cuda_string.h digit.h mpz.h
 
-###
-# Where our kernel is written
-###
-KERNEL = kernel.cu
+default: gpu cpu
 
-###
-# The C entrypoint of the program
-###
-MAIN = main.cpp
-
-default: $(CUDA_FILES) $(KERNEL) $(MAIN)
+########################################################
+#																											 #
+# GPU test program																		 #
+#																											 #
+########################################################
+gpu: $(OTHER_FILES) kernel.cu gpu_main.c
 		mkdir -p obj
-		$(NVCC) $(NVCCFLAGS) $(KERNEL) -c -o obj/$(KERNEL:.cu=.o)
-		$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LDLIBGS) $(MAIN) -c -o obj/$(MAIN:.cpp=.o)
-		$(CXX) $(LDFLAGS) $(LDLIBGS) obj/* -o main
+		$(NVCC) $(NVCCFLAGS) kernel.cu -c -o obj/kernel.o
+		$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LDLIBGS) gpu_main.c -c -o obj/gpu_main.o
+		$(CXX) $(LDFLAGS) $(LDLIBS) obj/gpu_main.o obj/kernel.o -o gpu
+
+########################################################
+#																											 #
+# CPU test program																		 #
+#																											 #
+########################################################
+cpu: $(OTHER_FILES) cpu_main.c
+		mkdir -p obj
+		$(CXX) $(CXXFLAGS) cpu_main.c -c -o obj/cpu_main.o
+		$(CXX) $(CXXFLAGS) obj/cpu_main.o -o cpu
 
 %.c:
 %.h:
@@ -43,4 +50,5 @@ default: $(CUDA_FILES) $(KERNEL) $(MAIN)
 
 clean:
 	rm -rf obj/
-	rm -f main
+	rm -f gpu
+	rm -f cpu

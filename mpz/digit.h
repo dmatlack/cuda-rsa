@@ -10,6 +10,15 @@
 #ifndef __418_DIGIT_H__
 #define __418_DIGIT_H__
 
+#ifndef __CUDACC__ /* when compiling with gcc... */
+
+#define __device__
+#define __host__
+
+#include <string.h>
+
+#endif 
+
 typedef unsigned char digit_t;
 
 #define DIGIT_BASE 10
@@ -23,9 +32,9 @@ __device__ __host__ int digits_is_zero(digit_t *digits,
   unsigned i;
 
   for (i = 0; i < num_digits; i++) {
-    if (digits[i] != 0) return false;
+    if (digits[i] != 0) return 0;
   }
-  return true;
+  return 1;
 }
 
 /**
