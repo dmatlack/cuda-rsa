@@ -209,29 +209,6 @@ __device__ __host__ void mpz_destroy(mpz_t *mpz) {
 }
 
 /**
- * @brief Perform dst = src1 + src2
- *
- * ASSUMES that all parameters have enough digit space to do the addition.
- * DOES NOT account for negative numbers.
- * 
- * @return The carry out.
- */
-inline __device__ __host__ digit_t _mpz_add(mpz_t *dst, 
-                                            mpz_t *src1, mpz_t *src2) {
-  unsigned i = 0;
-  digit_t carry = 0;
-
-  for (i = 0; i < dst->max_digits; i++) {
-    digit_t a = src1->digits[i];
-    digit_t b = src2->digits[i];
-
-    dst->digits[i] = digit_add(a, b, &carry);
-  }
-
-  return carry;
-}
-
-/**
  * @brief Add two multiple precision integers.
  *
  *      dst := src1 + src2
@@ -258,7 +235,9 @@ __device__ __host__ void mpz_add(mpz_t *dst, mpz_t *src1, mpz_t *src2) {
 
   /* If both are negative, treate them as positive and negate the result */
   if (mpz_is_negative(src1) && mpz_is_negative(src2)) {
-    _mpz_add(dst, src1, src2);
+    digits_add(dst->digits, dst->max_digits, 
+               src1->digits, src1->max_digits,
+               src2->digits, src2->max_digits);
     dst->sign = -1;
   }
   else {
@@ -268,7 +247,9 @@ __device__ __host__ void mpz_add(mpz_t *dst, mpz_t *src1, mpz_t *src2) {
     if (mpz_is_negative(src1)) digits_complement(src1->digits, src1->max_digits);
     if (mpz_is_negative(src2)) digits_complement(src2->digits, src2->max_digits);
 
-    carry_out = _mpz_add(dst, src1, src2);
+    carry_out = digits_add(dst->digits, dst->max_digits, 
+                           src1->digits, src1->max_digits,
+                           src2->digits, src2->max_digits);
     
     if (carry_out == 0 && (mpz_is_negative(src1) || mpz_is_negative(src2))) {
       digits_complement(dst->digits, dst->max_digits);

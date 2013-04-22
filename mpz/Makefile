@@ -32,6 +32,7 @@ gpu: $(OTHER_FILES) kernel.cu gpu_main.c
 		$(NVCC) $(NVCCFLAGS) kernel.cu -c -o obj/kernel.o
 		$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LDLIBGS) gpu_main.c -c -o obj/gpu_main.o
 		$(CXX) $(LDFLAGS) $(LDLIBS) obj/gpu_main.o obj/kernel.o -o gpu
+		./gpu
 
 ########################################################
 #																											 #
@@ -42,6 +43,7 @@ cpu: $(OTHER_FILES) cpu_main.c
 		mkdir -p obj
 		$(CXX) $(CXXFLAGS) cpu_main.c -c -o obj/cpu_main.o
 		$(CXX) $(CXXFLAGS) obj/cpu_main.o -o cpu
+		./cpu
 
 %.c:
 %.h:
