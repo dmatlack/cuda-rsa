@@ -5,8 +5,11 @@
  *
  * @author David Matlack (dmatlack)
  */
-#include "string.cu"
-#include "digit.cu"
+#ifndef __418_MPZ_H__
+#define __418_MPZ_H__
+
+#include "cuda_string.h"
+#include "digit.h"
 
 /** @breif struct used to represent multiple precision integers (Z) */
 typedef struct {
@@ -15,7 +18,7 @@ typedef struct {
 } mpz_t;
 
 /** @brief Called if the program runs out of memory */
-__device__ void mpz_memory_error(char *function) {
+__device__ __host__ void mpz_memory_error(char *function) {
   // TODO
 }
 
@@ -23,7 +26,7 @@ __device__ void mpz_memory_error(char *function) {
  * @brief Check that the given mpz_t struct has room for num_digits. If not,
  * allocate memory for enough digits.
  */
-__device__ void mpz_ensure_mem(mpz_t *mpz, unsigned num_digits) {
+__device__ __host__ void mpz_ensure_mem(mpz_t *mpz, unsigned num_digits) {
   int i;
   
   if (mpz->num_digits < num_digits) {
@@ -44,7 +47,7 @@ __device__ void mpz_ensure_mem(mpz_t *mpz, unsigned num_digits) {
 /**
  * @brief Intialize the mpz_t struct with no intial value.
  */
-__device__ void mpz_init(mpz_t *mpz) {
+__device__ __host__ void mpz_init(mpz_t *mpz) {
   mpz->num_digits = 0;
 }
 
@@ -53,7 +56,7 @@ __device__ void mpz_init(mpz_t *mpz) {
  *
  * @warning Assumes the mpz struct has been initialized.
  */
-__device__ void mpz_set_ui(mpz_t *mpz, unsigned int z) {
+__device__ __host__ void mpz_set_ui(mpz_t *mpz, unsigned int z) {
   unsigned num_digits = 64;
 
   mpz_ensure_mem(mpz, num_digits);
@@ -67,8 +70,8 @@ __device__ void mpz_set_ui(mpz_t *mpz, unsigned int z) {
  *
  * @warning Assumes the mpz struct has been initialized.
  */
-__device__ void mpz_set_str(mpz_t *mpz, char *str) {
-  unsigned num_digits = cudaStrlen(str);
+__device__ __host__ void mpz_set_str(mpz_t *mpz, char *str) {
+  unsigned num_digits = cuda_strlen(str);
   unsigned i;
 
   mpz_ensure_mem(mpz, num_digits);
@@ -84,7 +87,7 @@ __device__ void mpz_set_str(mpz_t *mpz, char *str) {
 /**
  * @breif Destroy the mpz_t struct.
  */
-__device__ void mpz_destroy(mpz_t *mpz) {
+__device__ __host__ void mpz_destroy(mpz_t *mpz) {
   free(mpz->digits);
 }
 
@@ -96,7 +99,7 @@ __device__ void mpz_destroy(mpz_t *mpz) {
  * @warning It is assumed that all mpz_t parameters have been initialized.
  * @warning Assumes that src1 and src2 are positive.
  */
-__device__ void mpz_add(mpz_t *dst, mpz_t *src1, mpz_t *src2) {
+__device__ __host__ void mpz_add(mpz_t *dst, mpz_t *src1, mpz_t *src2) {
   int max_digits = max(src1->num_digits, src2->num_digits);
 
   mpz_ensure_mem(dst, max_digits);
@@ -110,7 +113,7 @@ __device__ void mpz_add(mpz_t *dst, mpz_t *src1, mpz_t *src2) {
  * @breif Return true if the the two mpz_t struct represent equivalent 
  * integers.
  */
-__device__ int mpz_equal(mpz_t *a, mpz_t *b) {
+__device__ __host__ int mpz_equal(mpz_t *a, mpz_t *b) {
   unsigned i;
   unsigned min_digits;
 
@@ -133,7 +136,7 @@ __device__ int mpz_equal(mpz_t *a, mpz_t *b) {
  * @warning If buf is NULL, the string is dynamically allocated and must 
  * therefore be freed by the user.
  */
-__device__ char* mpz_get_str(mpz_t *mpz, char *buf, unsigned bufsize) {
+__device__ __host__ char* mpz_get_str(mpz_t *mpz, char *buf, unsigned bufsize) {
   char *str;
   int print_zeroes = 0; // don't print leading 0s
   int i, str_index = 0;
@@ -158,3 +161,5 @@ __device__ char* mpz_get_str(mpz_t *mpz, char *buf, unsigned bufsize) {
 
   return str;
 }
+
+#endif /* __418_MPZ_H__ */

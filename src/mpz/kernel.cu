@@ -3,10 +3,11 @@
  *
  * @brief The CUDA kernel that will run.
  */
-#include "mpz.cu"    // multiple precision cuda code
 #include "kernel.h"
 
-#include "stdio.h"
+#include "mpz.h"    // multiple precision cuda code
+#include "cuda_string.h"
+#include <stdio.h>
 
 char *devA;
 char *devB;
@@ -40,7 +41,7 @@ __global__ void additionKernel(char *devA, char *devB, char *devC, unsigned coun
 
     global_str = devC + (index * STRING_MAX_SIZE); 
 
-    memcpy(global_str, str, cudaStrlen(str) + 1);
+    memcpy(global_str, str, cuda_strlen(str) + 1);
 
     mpz_destroy(&sum);
     mpz_destroy(&op1);

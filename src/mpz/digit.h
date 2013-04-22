@@ -7,6 +7,8 @@
  *
  * @author David Matlack (dmatlack)
  */
+#ifndef __418_DIGIT_H__
+#define __418_DIGIT_H__
 
 typedef unsigned char digit_t;
 
@@ -16,7 +18,8 @@ typedef unsigned char digit_t;
  * @brief Return true (non-zero) if all of the digits in the digits array
  * are zero (and thus the corresponding number is zero.
  */
-__device__ int digits_is_zero(digit_t *digits, unsigned num_digits) {
+__device__ __host__ int digits_is_zero(digit_t *digits, 
+                                       unsigned num_digits) {
   unsigned i;
 
   for (i = 0; i < num_digits; i++) {
@@ -28,7 +31,8 @@ __device__ int digits_is_zero(digit_t *digits, unsigned num_digits) {
 /**
  * @brief Parse an unsigned int into an array of digits.
  */
-__device__ void digits_parse(digit_t *digits, unsigned num_digits, unsigned ui) {
+__device__ __host__ void digits_parse(digit_t *digits, unsigned num_digits, 
+                                      unsigned ui) {
   unsigned i;
   
   memset(digits, 0, num_digits * sizeof(digit_t));
@@ -44,7 +48,8 @@ __device__ void digits_parse(digit_t *digits, unsigned num_digits, unsigned ui) 
  * @brief Find the result of a + b + carry. Store the resulting carry of this
  * operation back in the carry pointer.
  */
-__device__ __inline__ digit_t digit_add(digit_t a, digit_t b, digit_t *carry) {
+__device__ __host__ digit_t digit_add(digit_t a, digit_t b, 
+                                        digit_t *carry) {
   digit_t result = a + b + *carry;
 
   if (result >= DIGIT_BASE) {
@@ -58,9 +63,9 @@ __device__ __inline__ digit_t digit_add(digit_t a, digit_t b, digit_t *carry) {
   return result;
 }
 
-__device__ void digits_add(digit_t *sum, unsigned sum_num_digits, 
-                           digit_t *op1, unsigned op1_num_digits,
-                           digit_t *op2, unsigned op2_num_digits) {
+__device__ __host__ void digits_add(digit_t *sum, unsigned sum_num_digits, 
+                                    digit_t *op1, unsigned op1_num_digits,
+                                    digit_t *op2, unsigned op2_num_digits) {
   digit_t carry = 0;
   unsigned i;
 
@@ -72,14 +77,16 @@ __device__ void digits_add(digit_t *sum, unsigned sum_num_digits,
   }
 }
 
-__device__ char digit_tochar(digit_t d) {
+__device__ __host__ char digit_tochar(digit_t d) {
   return '0' + d;
 }
 
-__device__ digit_t digit_fromchar(char c) {
+__device__ __host__ digit_t digit_fromchar(char c) {
   if (c < '0' || c > '9') {
     c = '0';
   }
 
   return c - '0';
 }
+
+#endif /* __418_DIGIT_H__ */

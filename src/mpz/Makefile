@@ -14,8 +14,20 @@ LIBS += cudart
 LDLIBS = $(addprefix -l, $(LIBS))
 LDFLAGS = -L/usr/local/cuda/lib64/ -lcudart
 
-CUDA_FILES = digit.cu string.cu mpz.cu
+###
+# Files we don't compile with directly, but we want Make to know that we
+# depend on them
+###
+CUDA_FILES = cuda_string.h digit.h mpz.h
+
+###
+# Where our kernel is written
+###
 KERNEL = kernel.cu
+
+###
+# The C entrypoint of the program
+###
 MAIN = main.cpp
 
 default: $(CUDA_FILES) $(KERNEL) $(MAIN)
@@ -24,6 +36,8 @@ default: $(CUDA_FILES) $(KERNEL) $(MAIN)
 		$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LDLIBGS) $(MAIN) -c -o obj/$(MAIN:.cpp=.o)
 		$(CXX) $(LDFLAGS) $(LDLIBGS) obj/* -o main
 
+%.c:
+%.h:
 %.cu:
 %.cpp:
 
