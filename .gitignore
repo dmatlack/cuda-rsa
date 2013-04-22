@@ -14,4 +14,4 @@ obj/
 *.a
 
 # Project Specific Executables
-src/mpz/main
+mpz/main
