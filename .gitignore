@@ -13,6 +13,10 @@ obj/
 *.la
 *.a
 
+# emacs tmp files
+*~
+*#
+
 # Project Specific Executables
 mpz/cpu
 mpz/gpu
