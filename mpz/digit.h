@@ -69,7 +69,7 @@ __device__ __host__ void digits_complement(digit_t *digits,
   // Add 1
   i = 0;
   carry = 1;
-  while (carry != 0) {
+  while (carry != 0 && i < num_digits) {
     digits[i] = digit_add(digits[i], 0, &carry);
     i++;
   }

@@ -76,6 +76,7 @@ __device__ __host__ unsigned mpz_count_digits(mpz_t *mpz) {
 }
 
 inline __device__ __host__ int mpz_is_negative(mpz_t *mpz) {
+  if (digits_is_zero(mpz->digits, mpz->max_digits)) return false;
   return mpz->sign == -1;
 }
 
@@ -146,6 +147,21 @@ __device__ __host__ void mpz_init(mpz_t *mpz) {
   mpz_clear(mpz);
 
   mpz->sign = 1;
+}
+
+__device__ __host__ void mpz_set(mpz_t *to, mpz_t *from) {
+  unsigned from_digits = mpz_count_digits(from);
+  unsigned i;
+
+  mpz_ensure_mem(to, from_digits);
+  mpz_clear(to);
+
+  for (i = 0; i < to->max_digits; i++) {
+    digit_t d = (i < from->max_digits) ? from->digits[i] : 0;
+    to->digits[i] = d;
+  }
+
+  to->sign = from->sign;
 }
 
 /**
@@ -240,6 +256,7 @@ __device__ __host__ void mpz_add(mpz_t *dst, mpz_t *src1, mpz_t *src2) {
                src2->digits, src2->max_digits);
     dst->sign = -1;
   }
+  /* one or neither are negative */
   else {
     digit_t carry_out;
 
@@ -272,9 +289,9 @@ __device__ __host__ void mpz_add(mpz_t *dst, mpz_t *src1, mpz_t *src2) {
  * @warning Assumes dst != src1 != src2
  */
 __device__ __host__ void mpz_sub(mpz_t *dst, mpz_t *src1, mpz_t *src2) {
-  src2->sign *= -1;
+  mpz_negate(src2);
   mpz_add(dst, src1, src2);
-  src2->sign *= -1;
+  mpz_negate(src2);
 }
 
 /**

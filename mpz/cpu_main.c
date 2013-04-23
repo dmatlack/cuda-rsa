@@ -81,6 +81,46 @@ void test_sub(const char * op1_str, const char *op2_str,
   }
 }
 
+void test_negate(const char *str, const char *neg) {
+  mpz_t z;
+  char got_str[1024];
+
+  mpz_init(&z);
+
+  mpz_set_str(&z, str);
+
+  mpz_negate(&z);
+
+  mpz_get_str(&z, got_str, 1024);
+
+  if (!strcmp(got_str, neg)) {
+    printf(".");
+  }
+  else {
+    printf("\nFAIL: mpz_negate(%s) = [expected: %s, got: %s]\n",
+           str, neg, got_str);
+  }
+}
+
+void test_set_i(int i, const char *str) {
+  mpz_t z;
+  char got_str[1024];
+
+  mpz_init(&z);
+
+  mpz_set_i(&z, i);
+
+  mpz_get_str(&z, got_str, 1024);
+
+  if (!strcmp(got_str, str)) {
+    printf(".");
+  }
+  else {
+    printf("\nFAIL: mpz_set_i(%i) = [expected: %s, got: %s]\n",
+           i, str, got_str);
+  }
+}
+
 int main(int argc, char **argv) {
 
   (void)argc;
@@ -104,7 +144,6 @@ int main(int argc, char **argv) {
   test_add("1", "-10", "-9");
   test_add("-10", "1", "-9");
   test_add("-10", "-1", "-11");
-
   test_add("1234123849173249817324987", "-29389238479283749283749",
            "1204734610693966068041238");
   test_add("-1234123849173249817324987", "29389238479283749283749",
@@ -115,11 +154,28 @@ int main(int argc, char **argv) {
   test_sub("-0", "0",  "0");
   test_sub("0",  "-0", "0");
   test_sub("-0", "-0", "0");
-
+  test_sub("0", "1", "-1");
+  test_sub("1", "0", "1");
+  test_sub("-1", "0", "-1");
+  test_sub("0", "-1", "1");
+  test_sub("-0", "1", "-1");
+  test_sub("1", "-0", "1");
+  test_sub("-1", "-0", "-1");
+  test_sub("-0", "-1", "1");
   test_sub("1234123849173249817324987", "29389238479283749283749",
            "1204734610693966068041238");
   test_sub("29389238479283749283749", "1234123849173249817324987", 
            "-1204734610693966068041238");
+
+  test_negate("0", "0");
+  test_negate("1", "-1");
+  test_negate("-1", "1");
+  test_negate("11234", "-11234");
+  test_negate("494949494949494494494949", "-494949494949494494494949");
+
+  test_set_i(0, "0");
+  test_set_i(-13, "-13");
+  test_set_i(234567, "234567");
   
   printf("\n");
   return 0;
