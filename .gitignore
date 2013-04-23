@@ -16,3 +16,4 @@ obj/
 # Project Specific Executables
 mpz/cpu
 mpz/gpu
+pollard_internet/pollard
