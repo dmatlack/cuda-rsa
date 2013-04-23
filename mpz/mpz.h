@@ -333,14 +333,18 @@ __device__ __host__ char* mpz_get_str(mpz_t *mpz, char *buf, unsigned bufsize) {
   int print_zeroes = 0; // don't print leading 0s
   int i, str_index = 0;
   int prefix_index = 0;
+  int max_size_of_buf = mpz_count_digits(mpz) + 1  // for the NULL terminator
+                                              + 1; // for the negative sign
 
+  // for now just assume the user provided buffer is large enough to hold
+  // the string representation of the integer...
   (void) bufsize;
 
-  if (buf != NULL) {
-    str = buf;
+  if (NULL == buf) {
+    str = (char *) malloc (sizeof(char) * (max_size_of_buf));
   }
   else {
-    str = (char *) malloc (sizeof(char) * (mpz->max_digits + 1));
+    str = buf;
   }
 
   if (mpz_is_negative(mpz)) {
