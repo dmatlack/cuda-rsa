@@ -18,7 +18,7 @@ LDFLAGS = -L/usr/local/cuda/lib64/ -lcudart
 # Files we don't compile with directly, but we want Make to know that we
 # depend on them
 ###
-OTHER_FILES = mpz.h
+OTHER_FILES = cuda_string.h digit.h mpz.h
 
 default: gpu cpu
 
@@ -28,7 +28,7 @@ default: gpu cpu
 #																											 #
 ########################################################
 gpu: $(OTHER_FILES) kernel.cu gpu_main.c
-		cp mpz.h ../include
+		#cp mpz.h ../include
 		mkdir -p obj
 		$(NVCC) $(NVCCFLAGS) kernel.cu -c -o obj/kernel.o
 		$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LDLIBGS) gpu_main.c -c -o obj/gpu_main.o
@@ -41,7 +41,7 @@ gpu: $(OTHER_FILES) kernel.cu gpu_main.c
 #																											 #
 ########################################################
 cpu: $(OTHER_FILES) cpu_main.c
-		cp mpz.h ../include
+		#cp mpz.h ../include
 		mkdir -p obj
 		$(CXX) $(CXXFLAGS) cpu_main.c -c -o obj/cpu_main.o
 		$(CXX) $(CXXFLAGS) obj/cpu_main.o -o cpu
