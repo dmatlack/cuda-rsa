@@ -86,9 +86,11 @@ inline __device__ __host__ void mpz_negate(mpz_t *mpz) {
 
 
 /**
- * @brief Check that the given mpz_t struct has room for num_digits. If not,
- * allocate memory for enough digits and copy the old contents to the new
- * array of digits.
+ * @brief Make the size of the mpz_t struct the first power of 2 that is
+ * greater than or equal to new_max_digits.
+ *
+ * @warning If new_max_digits is less than the size of the mpz struct than
+ * some information may be lost!
  *
  * We currently only grow the mpz structs as we need more room for digits. 
  * Maybe in the future we will want to shrink the digit array? Probably not
@@ -97,22 +99,19 @@ inline __device__ __host__ void mpz_negate(mpz_t *mpz) {
 __device__ __host__ void mpz_ensure_mem(mpz_t *mpz, unsigned new_max_digits) {
   digit_t *new_digits;
   unsigned i;
-  
+
   if (mpz->max_digits < new_max_digits) {
-    
     /* Find the next power of 2 digits that gives us at least new_max_digits */
-    unsigned find_new_max = DEFAULT_INITIAL_MAX_DIGITS;
+    unsigned find_new_max = 2;
     while (find_new_max < new_max_digits) find_new_max *= 2;
     new_max_digits = find_new_max;
 
     new_digits = (digit_t *) malloc (new_max_digits * sizeof(digit_t));
-
     if (NULL == new_digits) mpz_memory_error("mpz_alloc");
 
     /* Copy the old data over */
     for (i = 0; i < new_max_digits; i++) {
-      if (i < mpz->max_digits) new_digits[i] = mpz->digits[i];
-      else mpz->digits[i] = 0;
+      new_digits[i] = (i < mpz->max_digits) ? mpz->digits[i] : 0;
     }
 
     /* Free the old digits array */
@@ -120,7 +119,6 @@ __device__ __host__ void mpz_ensure_mem(mpz_t *mpz, unsigned new_max_digits) {
 
     mpz->digits = new_digits;
     mpz->max_digits = new_max_digits;
-
   }
 
 }
@@ -227,33 +225,33 @@ __device__ __host__ void mpz_destroy(mpz_t *mpz) {
 /**
  * @brief Add two multiple precision integers.
  *
- *      dst := src1 + src2
+ *      dst := op1 + op2
  * 
  * @warning It is assumed that all mpz_t parameters have been initialized.
- * @warning Assumes dst != src1 != src2
+ * @warning Assumes dst != op1 != op2
  */
-__device__ __host__ void mpz_add(mpz_t *dst, mpz_t *src1, mpz_t *src2) {
-  int src1_digit_count = mpz_count_digits(src1);
-  int src2_digit_count = mpz_count_digits(src2);
+__device__ __host__ void mpz_add(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
+  unsigned op1_digit_count = mpz_count_digits(op1);
+  unsigned op2_digit_count = mpz_count_digits(op2);
 
   /* In addition, if the operand with the most digits has D digits, then
    * the result of the addition will have at most D + 1 digits. */
-  int max_digits = max(src1_digit_count, src2_digit_count) + 1;
+  unsigned max_digits = max(op1_digit_count, op2_digit_count) + 1;
 
   /* Make sure all of the mpz structs have enough memory to hold all of
    * the digits. We will be doing 10's complement so everyone needs to 
    * have enough digits. */
   mpz_ensure_mem(dst,  max_digits);
-  mpz_ensure_mem(src1, max_digits);
-  mpz_ensure_mem(src2, max_digits);
+  mpz_ensure_mem(op1, max_digits);
+  mpz_ensure_mem(op2, max_digits);
 
   mpz_clear(dst);
 
   /* If both are negative, treate them as positive and negate the result */
-  if (mpz_is_negative(src1) && mpz_is_negative(src2)) {
+  if (mpz_is_negative(op1) && mpz_is_negative(op2)) {
     digits_add(dst->digits, dst->max_digits, 
-               src1->digits, src1->max_digits,
-               src2->digits, src2->max_digits);
+               op1->digits, op1->max_digits,
+               op2->digits, op2->max_digits);
     dst->sign = -1;
   }
   /* one or neither are negative */
@@ -261,14 +259,14 @@ __device__ __host__ void mpz_add(mpz_t *dst, mpz_t *src1, mpz_t *src2) {
     digit_t carry_out;
 
     /* Perform 10's complement on negative numbers before adding */
-    if (mpz_is_negative(src1)) digits_complement(src1->digits, src1->max_digits);
-    if (mpz_is_negative(src2)) digits_complement(src2->digits, src2->max_digits);
+    if (mpz_is_negative(op1)) digits_complement(op1->digits, op1->max_digits);
+    if (mpz_is_negative(op2)) digits_complement(op2->digits, op2->max_digits);
 
     carry_out = digits_add(dst->digits, dst->max_digits, 
-                           src1->digits, src1->max_digits,
-                           src2->digits, src2->max_digits);
+                           op1->digits, op1->max_digits,
+                           op2->digits, op2->max_digits);
     
-    if (carry_out == 0 && (mpz_is_negative(src1) || mpz_is_negative(src2))) {
+    if (carry_out == 0 && (mpz_is_negative(op1) || mpz_is_negative(op2))) {
       digits_complement(dst->digits, dst->max_digits);
       dst->sign = -1;
     }
@@ -277,21 +275,49 @@ __device__ __host__ void mpz_add(mpz_t *dst, mpz_t *src1, mpz_t *src2) {
     }
 
     /* Undo the 10s complement after adding */
-    if (mpz_is_negative(src1)) digits_complement(src1->digits, src1->max_digits);
-    if (mpz_is_negative(src2)) digits_complement(src2->digits, src2->max_digits);
+    if (mpz_is_negative(op1)) digits_complement(op1->digits, op1->max_digits);
+    if (mpz_is_negative(op2)) digits_complement(op2->digits, op2->max_digits);
   }
 }
 
 /**
- * @brief Perform dst := src1 - src2.
+ * @brief Perform dst := op1 - op2.
  *
  * @warning Assumes that all mpz_t parameters have been initialized.
- * @warning Assumes dst != src1 != src2
+ * @warning Assumes dst != op1 != op2
  */
-__device__ __host__ void mpz_sub(mpz_t *dst, mpz_t *src1, mpz_t *src2) {
-  mpz_negate(src2);
-  mpz_add(dst, src1, src2);
-  mpz_negate(src2);
+__device__ __host__ void mpz_sub(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
+  mpz_negate(op2);
+  mpz_add(dst, op1, op2);
+  mpz_negate(op2);
+}
+
+/**
+ * @brief Perform dst := op1 * op2.
+ *
+ * @warning Assumes that all mpz_t parameters have been initialized.
+ * @warning Assumes dst != op1 != op2
+ */
+__device__ __host__ void mpz_mult(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
+  unsigned op1_digit_count = mpz_count_digits(op1);
+  unsigned op2_digit_count = mpz_count_digits(op2);
+  unsigned max_digits = max(op1_digit_count, op2_digit_count);
+
+  /* In multiplication, if the operand with the most digits has D digits, 
+   * then the result of the addition will have at most 2D digits. */
+  mpz_ensure_mem(dst, 2*max_digits);
+  mpz_ensure_mem(op1,   max_digits);
+  mpz_ensure_mem(op2,   max_digits);
+
+  /* We pass in max_digits as the number of digits rather that the actual
+   * number of digits in each mpz_t struct. This is done because the 
+   * multiplication code has some assumptions and optimizations (e.g.
+   * op1 and op2 to have the same number of digits) */
+  digits_mult(dst->digits, op1->digits, op2->digits, max_digits);
+
+  /* Compute the sign of the product */
+  if (digits_is_zero(dst->digits, dst->max_digits)) dst->sign = 1;
+  else dst->sign = op1->sign * op2->sign;
 }
 
 /**
