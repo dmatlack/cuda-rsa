@@ -37,24 +37,44 @@ __device__ __host__ int digits_is_zero(digit_t *digits,
   return 1;
 }
 
+inline __device__ __host__ void clip(unsigned long long value,
+                                     digit_t* result, digit_t *carry) {
+  *carry  = value / DIGIT_BASE;
+  *result = value % DIGIT_BASE;
+}
+
 /**
  * @brief Find the result of a + b + carry. Store the resulting carry of this
  * operation back in the carry pointer.
  */
 __device__ __host__ digit_t add(digit_t a, digit_t b, 
                                 digit_t *carry) {
-  digit_t result = a + b + *carry;
+  unsigned long long tmp = a + b + *carry;
+  digit_t result;
 
-  if (result >= DIGIT_BASE) {
-    *carry = result / DIGIT_BASE;
-    result = result % DIGIT_BASE;
-  }
-  else {
-    *carry = 0;
-  }
+  clip(tmp, &result, carry);
   
   return result;
 }
+
+/**
+ * @brief Compute the multiplication of two digits (plus the carry).
+ *
+ * e.g If DIGIT_BASE is 10, and the input carry is 0,
+ *
+ *  3 x 5 = 15 = (product: 5, carry: 1)
+ *
+ * @return The product (as well as the carry out).
+ */
+__device__ __host__ digit_t mult(digit_t a, digit_t b, digit_t *carry) {
+  unsigned long long tmp = a*b + *carry;
+  digit_t result;
+
+  clip(tmp, &result, carry);
+  
+  return result;
+}
+
 
 /**
  * @brief Add the digit d to the list of digits (with carry)!
@@ -118,29 +138,6 @@ __device__ __host__ digit_t digits_add(digit_t *sum, unsigned sum_num_digits,
   return carry;
 }
 
-/**
- * @brief Compute the multiplication of two digits (plus the carry).
- *
- * e.g If DIGIT_BASE is 10, and the input carry is 0,
- *
- *  3 x 5 = 15 = (product: 5, carry: 1)
- *
- * @return The product (as well as the carry out).
- */
-__device__ __host__ digit_t mult(digit_t a, digit_t b, digit_t *carry) {
-  digit_t product = a*b + (*carry);
-
-  if (product >= DIGIT_BASE) {
-    *carry = product / DIGIT_BASE;
-    product = product % DIGIT_BASE;
-  }
-  else {
-    *carry = 0;
-  }
-
-  return product;
-}
-
 
 /**
  * @brief Compute product = op1 * op2 using the Long Multiplication
@@ -148,6 +145,8 @@ __device__ __host__ digit_t mult(digit_t a, digit_t b, digit_t *carry) {
  *
  * @warning It is assumed that op1 and op2 contain num_digits each
  * and product has room for at least 2*num_digits.
+ *
+ * @return The carry out.
  */
 __device__ __host__ void long_multiplication(digit_t *product, 
                                              digit_t *op1, 
@@ -174,8 +173,8 @@ __device__ __host__ void long_multiplication(digit_t *product,
 
 }
 
-__device__ __host__ void karatsuba(void) {
-  // TODO
+__device__ __host__ void karatsuba(void) { 
+  //TODO someway somehow someday
 }
 
 /**
