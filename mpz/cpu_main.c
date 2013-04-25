@@ -110,6 +110,31 @@ void test_mult(const char * op1_str, const char *op2_str,
   }
 }
 
+void test_equal(const char * op1_str, const char *op2_str,
+                int expected_equality) {
+  int got_equality;
+
+  mpz_t op1;
+  mpz_t op2;
+
+  mpz_init(&op1);
+  mpz_init(&op2);
+
+  mpz_set_str(&op1, op1_str);
+  mpz_set_str(&op2, op2_str);
+
+  got_equality = mpz_equal(&op1, &op2);
+
+  if ( (got_equality && expected_equality) ||
+       (!got_equality && !expected_equality) ) {
+    printf(".");
+  }
+  else {
+    printf("\nFAIL: %s == %s = [Expected: %d, Got: %d]\n", 
+           op1_str, op2_str, expected_equality, got_equality);
+  }
+}
+
 void test_negate(const char *str, const char *neg) {
   mpz_t z;
   char got_str[1024];
@@ -177,6 +202,8 @@ int main(int argc, char **argv) {
            "1204734610693966068041238");
   test_add("-1234123849173249817324987", "29389238479283749283749",
            "-1204734610693966068041238");
+  test_add("1991", "-1991", "0");
+  test_add("-1991", "1991", "0");
 
   // test_sub(a, b, c): check that a - b == c
   test_sub("0",  "0",  "0");
@@ -195,6 +222,11 @@ int main(int argc, char **argv) {
            "1204734610693966068041238");
   test_sub("29389238479283749283749", "1234123849173249817324987", 
            "-1204734610693966068041238");
+
+  test_sub("15418", "0", "15418");
+  test_sub("15418", "-0", "15418");
+  test_sub("-15418", "-0", "-15418");
+  test_sub("-15418", "0", "-15418");
 
   test_negate("0", "0");
   test_negate("1", "-1");
@@ -228,6 +260,18 @@ int main(int argc, char **argv) {
   test_mult("0",
             "2983492873401874018273482347156347856101573456091873465093245045",
             "0");
+
+#define EQUAL      1
+#define NOT_EQUAL  0
+
+  test_equal("0", "0", EQUAL);
+  test_equal("-0", "0", EQUAL);
+  test_equal("0", "-0", EQUAL);
+  test_equal("2934928749191929923847234234234234293847293847", 
+             "2934928749191929923847234234234234293847293847", EQUAL);
+  test_equal("1", "2", NOT_EQUAL);
+  test_equal("11111", "111", NOT_EQUAL);
+  test_equal("111", "111111", NOT_EQUAL);
 
   printf("\n");
   return 0;

@@ -37,6 +37,41 @@ __device__ __host__ int digits_is_zero(digit_t *digits,
   return 1;
 }
 
+/**
+ * @brief Comare the two arrays of digits.
+ *
+ * @return  < 0 if d1 < d2
+ *          = 0 if d1 == d2
+ *          > 0 if d1 > d2
+ *
+ * @warning The return value does NOT give any indication about the relative
+ * distance between the two numbers. It ONLY indicates <, >, or =.
+ */
+__device__ __host__ int digits_compare(digit_t *digits1, unsigned num_d1,
+                                       digit_t *digits2, unsigned num_d2) {
+  unsigned max_digits = (num_d1 > num_d2) ? num_d1 : num_d2;
+  unsigned i;
+
+  /* Iterate backwards so that we look at the most significant digits first */
+  for (i = max_digits - 1; i < max_digits; i--) {
+    digit_t d1 = (i < num_d1) ? digits1[i] : 0;
+    digit_t d2 = (i < num_d2) ? digits2[i] : 0;
+
+    if (d1 < d2) return -1;
+    if (d1 > d2) return  1;
+  }
+
+  return 0;
+}
+
+/**
+ * @breif Clip the value into two digits, the result and the carry.
+ * This is used by addition and multiplication code to compute
+ * carries.
+ *
+ * @param result Passed by reference back to the caller
+ * @param carry  Passed by reference back to the caller
+ */
 inline __device__ __host__ void clip(unsigned long long value,
                                      digit_t* result, digit_t *carry) {
   *carry  = value / DIGIT_BASE;

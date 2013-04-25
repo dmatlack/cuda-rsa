@@ -8,6 +8,9 @@
 #ifndef __418_MPZ_H__
 #define __418_MPZ_H__
 
+#define true 1
+#define false 0
+
 #ifndef __CUDACC__ /* when compiling with g++ ... */
 
 #define __device__
@@ -15,6 +18,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
 
 inline unsigned max(unsigned a, unsigned b) { return (a > b) ? a : b; }
 inline unsigned min(unsigned a, unsigned b) { return (a < b) ? a : b; }
@@ -33,7 +37,7 @@ inline int abs(int a) { return (a < 0) ? -a : a; }
 typedef struct {
   digit_t     *digits;       // an array of digits, in little endian order
   unsigned     max_digits;   // the capacity of the digits array
-  int          sign;         // +1 or -1
+  int          sign;         // +1, 0, or -1
 } mpz_t;
 
 /** @brief Called if the program runs out of memory */
@@ -134,6 +138,20 @@ __device__ __host__ void mpz_clear(mpz_t *mpz) {
   }
 }
 
+/**
+ * @brief If the number is zero, the sign should be zero.
+ */
+static inline __device__ __host__ void _assert_sign(mpz_t *mpz) {
+#ifndef __CUDACC__
+  if (digits_is_zero(mpz->digits, mpz->max_digits)) {
+    assert(0 == mpz->sign);
+  }
+  else {
+    assert(1 == mpz->sign || -1 == mpz->sign);
+  }
+#endif
+}
+
 __device__ __host__ void mpz_init(mpz_t *mpz) {
   mpz->digits = (digit_t *) malloc 
                 (sizeof(digit_t) * DEFAULT_INITIAL_MAX_DIGITS);
@@ -144,7 +162,7 @@ __device__ __host__ void mpz_init(mpz_t *mpz) {
 
   mpz_clear(mpz);
 
-  mpz->sign = 1;
+  mpz->sign = 0;
 }
 
 __device__ __host__ void mpz_set(mpz_t *to, mpz_t *from) {
@@ -173,7 +191,7 @@ __device__ __host__ void mpz_set_i(mpz_t *mpz, int z) {
   mpz_ensure_mem(mpz, 10);
   mpz_clear(mpz);
 
-  mpz->sign = (z < 0) ? -1 : 1;
+  mpz->sign = (z == 0) ? 0 : ((z > 0) ? 1: -1);
 
   z = abs(z);
 
@@ -192,6 +210,7 @@ __device__ __host__ void mpz_set_i(mpz_t *mpz, int z) {
 __device__ __host__ void mpz_set_str(mpz_t *mpz, const char *str) {
   unsigned num_digits;
   unsigned i;
+  int is_zero;
 
   /* Check if the provided number is negative */
   if (str[0] == '-') {
@@ -207,11 +226,17 @@ __device__ __host__ void mpz_set_str(mpz_t *mpz, const char *str) {
   mpz_ensure_mem(mpz, num_digits);
   mpz_clear(mpz);
 
+  is_zero = 1;
   for (i = 0; i < num_digits; i++) {
+    digit_t d = digit_fromchar(str[num_digits - i - 1]);
+
+    is_zero = is_zero && (d == 0);
+
     /* parse the string backwards (little endian order) */
-    mpz->digits[i] = digit_fromchar(str[num_digits - i - 1]);
+    mpz->digits[i] = d;
   }
 
+  if (is_zero) mpz->sign = 0;
 }
 
 /**
@@ -220,6 +245,7 @@ __device__ __host__ void mpz_set_str(mpz_t *mpz, const char *str) {
 __device__ __host__ void mpz_destroy(mpz_t *mpz) {
   free(mpz->digits);
   mpz->max_digits = 0;
+  mpz->sign = 0;
 }
 
 /**
@@ -266,18 +292,25 @@ __device__ __host__ void mpz_add(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
                            op1->digits, op1->max_digits,
                            op2->digits, op2->max_digits);
     
+    /* If there is no carryout, the result is negative */
     if (carry_out == 0 && (mpz_is_negative(op1) || mpz_is_negative(op2))) {
       digits_complement(dst->digits, dst->max_digits);
       dst->sign = -1;
     }
+    /* Otherwise, the result is non-negative */
     else {
-      dst->sign = 1;
+      dst->sign = (digits_is_zero(dst->digits, dst->max_digits)) ? 0 : 1;
     }
 
     /* Undo the 10s complement after adding */
     if (mpz_is_negative(op1)) digits_complement(op1->digits, op1->max_digits);
     if (mpz_is_negative(op2)) digits_complement(op2->digits, op2->max_digits);
   }
+
+  // FIXME remove eventually
+  _assert_sign(op1);
+  _assert_sign(op2);
+  _assert_sign(dst);
 }
 
 /**
@@ -316,35 +349,66 @@ __device__ __host__ void mpz_mult(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
   digits_mult(dst->digits, op1->digits, op2->digits, max_digits);
 
   /* Compute the sign of the product */
-  if (digits_is_zero(dst->digits, dst->max_digits)) dst->sign = 1;
-  else dst->sign = op1->sign * op2->sign;
+  dst->sign = op1->sign * op2->sign;
+
+  // TODO remove eventually
+  _assert_sign(op1);
+  _assert_sign(op2);
+  _assert_sign(dst);
 }
 
-/**
- * @breif Return true if the the two mpz_t struct represent equivalent 
- * integers.
+/** 
+ * @return 
+ *      < 0  if a < b
+ *      = 0  if a = b
+ *      > 0  if a > b
+ *
+ * @warning This function does not give any indication about the distance
+ * between a and b, just the relative distance (<, >, =).
  */
-__device__ __host__ int mpz_equal(mpz_t *a, mpz_t *b) {
-  unsigned i;
-  unsigned max_digits;
-  int is_zero = 1;
+#define MPZ_LESS    -1
+#define MPZ_GREATER  1
+#define MPZ_EQUAL    0
+__device__ __host__ int mpz_compare(mpz_t *a, mpz_t *b) {
+  int cmp;
+  int negative;
 
-  max_digits = max(a->max_digits, b->max_digits);
+  if (a->sign < b->sign) return MPZ_LESS;
+  if (a->sign > b->sign) return MPZ_GREATER;
+ 
+  /* At this point we know they have the same sign */
+  cmp = digits_compare(a->digits, a->max_digits, b->digits, b->max_digits);
+  negative = mpz_is_negative(a);
 
-  for (i = 0; i < max_digits; i++) {
-    digit_t ad = (i < a->max_digits) ? a->digits[i] : 0;
-    digit_t bd = (i < b->max_digits) ? b->digits[i] : 0;
+  if (cmp == 0) return MPZ_EQUAL;
 
-    is_zero = is_zero && (ad == 0);
-    
-    if (ad != bd) return 0;
+  if (negative) {
+    return (cmp > 0) ? MPZ_LESS : MPZ_GREATER;
   }
+  else {
+    return (cmp < 0) ? MPZ_LESS : MPZ_GREATER;
+  }
+}
 
-  /* Both numbers are either zero (in which case they are equal
-   * and we don't care about the sign), or they have equivalent 
-   * digits (in which case we just need to make sure their signs
-   * match) */
-  return (is_zero) || (a->sign == b->sign);
+/** @brief Return true if a == b */
+__device__ __host__ int mpz_equal(mpz_t *a, mpz_t *b) {
+  return (mpz_compare(a, b) == 0);
+}
+/** @brief Return true if a < b */
+__device__ __host__ int mpz_lt(mpz_t *a, mpz_t *b) {
+  return (mpz_compare(a, b) < 0);
+}
+/** @brief Return true if a <= b */
+__device__ __host__ int mpz_lte(mpz_t *a, mpz_t *b) {
+  return (mpz_compare(a, b) <= 0);
+}
+/** @brief Return true if a > b */
+__device__ __host__ int mpz_gt(mpz_t *a, mpz_t *b) {
+  return (mpz_compare(a, b) > 0);
+}
+/** @brief Return true if a >= b */
+__device__ __host__ int mpz_gte(mpz_t *a, mpz_t *b) {
+  return (mpz_compare(a, b) >= 0);
 }
 
 /**
