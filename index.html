@@ -8,7 +8,7 @@
 <body>
 
 <div class="constrainedWidth">
-  
+
 <div style="padding-bottom: 10px;">
 <div class="title smallTitle">CMU 15-418/618 (Spring 2013) Final Project:</div>
 <div class="title" style="width: 900px; padding-bottom: 6px; border-bottom: #000000 2px solid;">
@@ -38,12 +38,46 @@ Project Code: <a href="https://github.com/dmatlack/cuda-rsa">github</a>
   <td width="380"><span style="font-weight: bold;">What We Plan To Do</span></td>
   <td><span style="font-weight: bold;">What We Actually Did</span></td>
 </tr>
-<tr><td>Apr 1-7</td><td>&nbsp;</td><td>&nbsp;</td></tr>
-<tr><td>Apr 8-14</td><td>&nbsp;</td><td>&nbsp;</td></tr>
-<tr><td>Apr 15-21</td><td>&nbsp;</td><td>&nbsp;</td></tr>
-<tr><td>Apr 22-28</td><td>&nbsp;</td><td>&nbsp;</td></tr>
-<tr><td>Apr 29-May 5</td><td>&nbsp;</td><td>&nbsp;</td></tr>
-<tr><td>May 6-11</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+<tr>
+  <td>Apr 1-7</td>
+  <td>&nbsp;Decide on a project.
+  <td>&nbsp;Chose to work on a CUDA based integer factorizor, with a possible goal
+  of breaking RSA encryptions</td>
+</tr>
+<tr>
+  <td>Apr 8-14</td>
+  <td>&nbsp;Create proposal, choose algorithm,
+    choose/implement multiple precision library</td>
+  <td>&nbsp;Wrote proposal, investigated Pollard's p - 1 algorithm as well as the
+  elliptic curve method for factorization.  Decided, based on promising results as
+  well as our ability to understand it, to start with Pollard's algorithm. </td>
+</tr>
+<tr>
+  <td>Apr 15-21</td>
+  <td>&nbsp;Finalize multiple precision implementation,
+    begin GPU based implementation</td>
+  <td>&nbsp;Began CPU implementation of Pollard's algorithm using longs</td>
+</tr>
+<tr>
+  <td>Apr 22-28</td>
+  <td>&nbsp;Continue work on GPU implementation <br> &nbsp;
+  Finish GPU based implementation of Pollard's algorithm, using longs</td>
+  <td>&nbsp;Finished CPU implementation of Pollard's algorithm, and began GPU
+    implementation (again using longs), near completion of GPU implementation</td>
+</tr>
+<tr>
+  <td>Apr 29-May 5</td>
+  <td>&nbsp;Adapt GPU code to use MP library (if not ready, investigate alternative
+  algorithms<br>&nbsp;Profile code, create test suite and begin comparing to standards
+  <td></td>
+</tr>
+<tr>
+  <td>May 6-11</td>
+  <td>&nbsp;Consider optimizations, reworks for specific GPU architecture<br>
+    &nbsp;Implement RSA cracking, using factorization algorithm, evaluate viability
+  of stretch goals</td>
+  <td></td>
+</tr>
 </table>
 </p>
 

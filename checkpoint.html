@@ -8,20 +8,84 @@
 <body>
 
 <div class="constrainedWidth">
-  
+
 <div style="padding-bottom: 10px;">
 
 <div class="title smallTitle">Checkpoint Report:</div>
 <div class="title" style="width: 900px; padding-bottom: 6px; border-bottom: #000000 2px solid;">
-  [PROJECT TITLE HERE]
+  CUDA RSA
 </div>
 </div>
 
 <div style="padding-top: 1em;"><a href="index.html">Main Project Page</a></div>
 
-<p class="comment">[Your checkpoint writeup goes here.]</p>
+<div class="section">Checkpoint Overview</div>
+<p>
+  This page explains the progress and updates made to date on the CUDA RSA project.
+  Beside that which is on this page, updates have also been made to the main page
+  schedule, giving a brief overview of progress with respect to the goals set forth
+  by the project proposal and the new goals given the work done so far (as explained
+  below).  Small edits and clarifications have also been made to the project proposal.
+</p>
 
+<div class="section">Progress to Date</div>
+<p>
+  The emphasis of our project is on creating a CUDA based factorizer, so most of our
+  effort so far has been put to researching, understanding, and evaluating factorization
+  algorithms.  However, in order to create a meaningful large number factorizer, we also
+  require an API for large (greater than 64 bit) integers.  Consequently our initial
+  focus has been split between understanding and implementing basic factorization
+  algorithms and creating a solid GPU multiple precision integer library on which we will
+  rely.
+  <br>
+  Because of the reported success of Pollard's p - 1 algorithm given by
+  &quot;<a href="reference/lin.pdf">Efficient Paralles RSA Decryption Algorithm
+    for Many-Core GPUs with CUDA</a>,&quot; we decided to first implement this algorithm
+  completely before dabbling in any others.  This way, we can increase the chance that
+  we will be able to end up with a complete project.  We first implemented a single
+  threaded version of the algorithm to ensure that we understand it and are able to
+  replicate it.  Since we do not yet have multiple precision resources on the GPU we
+  decided to use longs in our CPU version, so that the code would be nearly directly
+  transferrable to the GPU.  After finishing and testing the CPU version, we began work
+  on the GPU version.  At the moment, the GPU version is nearly complete, but uses a
+  poor method for determining which value of k to use, which makes sense in a single
+  threaded application but does not work as well on the GPU.  The next step to be taken
+  is to use a large global prime table as recommended in the above paper.  Once that is
+  complete, we must still connect the algorithm to our multiple precision library.
+</p>
 
+<div class="section">Updated Proposed Schedule</div>
+<p>
+<table class="projectSchedule">
+<tr>
+  <th colspan="1"></t>
+  <th colspan="2">
+    <span style="font-weight: bold;">What We Plan To Do</span>
+  </th>
+</tr>
+<tr>
+  <td width="110"><span style="font-weight: bold;">Week</span></td>
+  <td width="190"><span style="font-weight: bold;">First Half</span></td>
+  <td width="190"><span style="font-weight: bold;">Second Half</span></td>
+</tr>
+<tr>
+  <td>Apr 22-28</td>
+  <td>&nbsp;--</td>
+  <td>&nbsp;Finish GPU based implementation of Pollard's algorithm, using longs</td>
+</tr>
+<tr>
+  <td>Apr 29-May 5</td>
+  <td>&nbsp;Adapt GPU code to use MP library (if not ready, investigate alternative
+  algorithms</td>
+  <td>&nbsp;Profile code, create test suite and begin comparing to standards</td>
+</tr>
+<tr>
+  <td>May 6-11</td>
+  <td>&nbsp;Consider optimizations, reworks for specific GPU architecture</td>
+  <td>&nbsp;Implement RSA cracking, using factorization algorithm, evaluate viability
+  of stretch goals</td>
+</tr>
+</table>
 
 </div>
 
