@@ -46,36 +46,39 @@ Project Code: <a href="https://github.com/dmatlack/cuda-rsa">github</a>
 </tr>
 <tr>
   <td>Apr 8-14</td>
-  <td>&nbsp;Create proposal, choose algorithm,
-    choose/implement multiple precision library</td>
+  <td>&nbsp;Create proposal, choose algorithm, choose/implement multiple precision 
+    library</td>
   <td>&nbsp;Wrote proposal, investigated Pollard's p - 1 algorithm as well as the
-  elliptic curve method for factorization.  Decided, based on promising results as
-  well as our ability to understand it, to start with Pollard's algorithm. </td>
+    elliptic curve method for factorization.  Decided, based on promising results as
+    well as our ability to understand it, to start with Pollard's algorithm. </td>
 </tr>
 <tr>
   <td>Apr 15-21</td>
   <td>&nbsp;Finalize multiple precision implementation,
     begin GPU based implementation</td>
-  <td>&nbsp;Began CPU implementation of Pollard's algorithm using longs</td>
+  <td>&nbsp;Began CPU implementation of Pollard's algorithm using longs. Began working
+    on Multiple Precision library.</td>
 </tr>
 <tr>
   <td>Apr 22-28</td>
   <td>&nbsp;Continue work on GPU implementation <br> &nbsp;
-  Finish GPU based implementation of Pollard's algorithm, using longs</td>
+    Finish GPU based implementation of Pollard's algorithm, using longs</td>
   <td>&nbsp;Finished CPU implementation of Pollard's algorithm, and began GPU
-    implementation (again using longs), near completion of GPU implementation</td>
+    implementation (again using longs), near completion of GPU implementation.
+    Completed most of Multiple Precision library.</td>
 </tr>
 <tr>
   <td>Apr 29-May 5</td>
-  <td>&nbsp;Adapt GPU code to use MP library (if not ready, investigate alternative
-  algorithms<br>&nbsp;Profile code, create test suite and begin comparing to standards
-  <td></td>
+  <td>&nbsp;Finish work on MP library and adapt GPU factor code to use MP library. 
+  <br>&nbsp;Profile code, create test suite and begin comparing to standards
+  </td>
+  <td/></td>
 </tr>
 <tr>
   <td>May 6-11</td>
   <td>&nbsp;Consider optimizations, reworks for specific GPU architecture<br>
     &nbsp;Implement RSA cracking, using factorization algorithm, evaluate viability
-  of stretch goals</td>
+    of stretch goals</td>
   <td></td>
 </tr>
 </table>
@@ -83,10 +86,26 @@ Project Code: <a href="https://github.com/dmatlack/cuda-rsa">github</a>
 
 <div class="section">Working Log</div>
 
-<p class="comment">[Keep a log of work you have done here.  You may
-wish to list optimizations you tried, what failed, etc.  Or you can
-just rant. Keeping a good log will make it easy to put together your
-final writeup.]</p>
+<ul>
+  <li>04/26 -- Worked on Checkpoint writeup</li>
+  <li>04/26 -- Started implementing Pollard p-1 on GPU</li>
+  <li>04/25 -- Implemented multiplication</li>
+  <li>04/24 -- Implemented CPU version of Pollard's algorithm</li>
+  <li>04/23 -- Fixed some bugs in MP library</li>
+  <li>04/22 -- Read papers on factoring algorithms. Checked out source code
+      that implemented pollard's p-1 algorithm to help with understanding from
+      <a href="http://www.frenchfries.net/paul/factoring/source.html">here</a>.
+      </li>
+  <li>04/22 -- Implemented subtraction and negative numbers</li>
+  <li>04/21 -- Ported mpz code to CUDA, wrote a kernel to test. MP code
+      compiles with g++ and with nvcc.</li>
+  <li>04/20 -- Implemented basic multiple precision init and add (CPU only)</li>
+</ul>
+
+<p>A more detailed worklog with more ranting can be found in the commit history
+of our github repo for this project 
+<a href="https://github.com/dmatlack/cuda-rsa/commits">here</a>.
+
 </div>
 
 </div>

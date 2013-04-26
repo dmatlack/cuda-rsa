@@ -29,16 +29,18 @@
 </p>
 
 <div class="section">Progress to Date</div>
-<p>
-  The emphasis of our project is on creating a CUDA based factorizer, so most of our
+
+  <p>The emphasis of our project is on creating a CUDA based factorizer, so most of our
   effort so far has been put to researching, understanding, and evaluating factorization
   algorithms.  However, in order to create a meaningful large number factorizer, we also
   require an API for large (greater than 64 bit) integers.  Consequently our initial
   focus has been split between understanding and implementing basic factorization
   algorithms and creating a solid GPU multiple precision integer library on which we will
-  rely.
-  <br>
-  Because of the reported success of Pollard's p - 1 algorithm given by
+  rely.</p>
+
+  <h3>Implementing Factoriztion</h3>
+
+  <p>Because of the reported success of Pollard's p - 1 algorithm given by
   &quot;<a href="reference/lin.pdf">Efficient Paralles RSA Decryption Algorithm
     for Many-Core GPUs with CUDA</a>,&quot; we decided to first implement this algorithm
   completely before dabbling in any others.  This way, we can increase the chance that
@@ -51,8 +53,65 @@
   poor method for determining which value of k to use, which makes sense in a single
   threaded application but does not work as well on the GPU.  The next step to be taken
   is to use a large global prime table as recommended in the above paper.  Once that is
-  complete, we must still connect the algorithm to our multiple precision library.
-</p>
+  complete, we must still connect the algorithm to our multiple precision library.</p>
+
+  <h3>Multiple Precision Library</h3>
+
+  <p>Work on the Multiple Precision Integer library for CUDA has been progressing well.
+  We have a partially completed and well tested library with the following functionality:
+  <ul>
+    <li>Initialization of arbitrary length integers (positive and negative)</li>
+    <li>Addition, Subtraction, Multiplication</li>
+    <li>Comparison</li>
+  </ul>
+  We have created the library such that it can be compiled by both <code>g++</code> and
+  <code>nvcc</code> for testing on the CPU and GPU respectively. In addition we have a
+  robust unit test suite to ensure correctness.</p>
+  
+  <p>The remaining work in the multiple precision library is to implement division, power, 
+  and modulus.</p>
+
+<div class="section">Updated Goals and Deliverables</div>
+
+<p>We have been keeping good pace with our original schedule and we think we can hit
+most of the goals we originally set. Here is what we think we'll have at the end of
+the project:
+<ul>
+  <li>A working multiple precision library for CUDA</li>
+  <li>A CUDA implementation of Pollard's p-1 algorithm built on top of the MP library</li>
+  <li>Analysis (graphical and written) of the performance of our implementation against
+    various CPU based implementations.</li>
+</ul>
+And as a stretch goal we hope to have:
+<ul>
+  <li>Code that interfaces with RSA so we can demo the power of being able to factor
+    large numbers quickly.</li>
+</ul></p>
+
+<p>Our demo will depend on whether or not we can implement the RSA portion of the project.
+Obviously, it is the most flashy and would give a good demo. We would start the demo off
+by encrypting a message with a small key (like a 64-bit key). Then we would give a short
+presentation about our project and findings. Then at the end of the presentation our code
+will have factored the public key, decrypted the message, and output the message to the
+screen, thus demonstrating the power of our implementation. It may be the case that
+writing code to interface with RSA is too difficult or tedious, in which case this
+presentation won't be possible. In this case, we can still demonstrate our program's 
+factoring on large numbers. We could use a number likely to be used in RSA (large number
+with two, large, prime factors).</p>
+
+<div class="section">Preliminary Results</div>
+
+<p>Our only preliminary results are that we can factor small numbers on the CPU using
+Pollard's p-1 algorithm, and that our MP library is passing all tests for what is currently
+implemented.</p>
+
+<div class="section">Issues / Concerns</div>
+
+<p>We are making good progress and do not have any major concerns at this time. Finishing
+the rest of the project should hopefully just be a matter of coding and puzzling out how
+to best parallelize Pollard's p-1 Algorithm. Our biggest challenges are yet to come but 
+we think we will be able to have a working project in time. The only concern at this time
+is getting RSA working, but that is a stretch goal.</p>
 
 <div class="section">Updated Proposed Schedule</div>
 <p>
@@ -71,12 +130,13 @@
 <tr>
   <td>Apr 22-28</td>
   <td>&nbsp;--</td>
-  <td>&nbsp;Finish GPU based implementation of Pollard's algorithm, using longs</td>
+  <td>&nbsp;Finish GPU based implementation of Pollard's algorithm, using longs. Finish
+  implementing and testing the MP library</td>
 </tr>
 <tr>
   <td>Apr 29-May 5</td>
   <td>&nbsp;Adapt GPU code to use MP library (if not ready, investigate alternative
-  algorithms</td>
+  algorithms)</td>
   <td>&nbsp;Profile code, create test suite and begin comparing to standards</td>
 </tr>
 <tr>
@@ -87,6 +147,7 @@
 </tr>
 </table>
 
+</div>
 </div>
 
 </body>
