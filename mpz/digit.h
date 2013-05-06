@@ -10,18 +10,12 @@
 #ifndef __418_DIGIT_H__
 #define __418_DIGIT_H__
 
-#ifndef __CUDACC__ /* when compiling with gcc... */
+#include "compile.h"
 
-#define __device__
-#define __host__
-
-#include <string.h>
-
-#endif /* __CUDACC__ */
+#define DIGIT_BASE       10
+#define DIGITS_CAPACITY  128
 
 typedef unsigned char digit_t;
-
-#define DIGIT_BASE 10
 
 /**
  * @brief Return true (non-zero) if all of the digits in the digits array
