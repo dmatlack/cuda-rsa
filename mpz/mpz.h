@@ -462,7 +462,6 @@ __device__ __host__ void mpz_div(mpz_t *q, mpz_t *r, mpz_t *n, mpz_t *d) {
   int i;
   int nsign = n->sign;
   int dsign = d->sign;
-  int q_is_zero = true;
 
   (void)r;
 
@@ -473,29 +472,39 @@ __device__ __host__ void mpz_div(mpz_t *q, mpz_t *r, mpz_t *n, mpz_t *d) {
   n->sign = 1;
   d->sign = 1;
 
-  for (i = n_digit_count - 1; i >= 0; i--) {
-    digits_rshift(row.digits, row.capacity, 1);
+  if (mpz_gt(n, d)) {
 
-    mpz_set_i(&digit, (int) n->digits[i]);
-    mpz_add(&tmp, &row, &digit);
-    mpz_set(&row, &tmp);
+    for (i = n_digit_count - 1; i >= 0; i--) {
+      digits_rshift(row.digits, row.capacity, 1);
 
-    q->digits[i] = 0;
-    while (mpz_gte(&row, d)) {
-      q->digits[i]++;
-      q_is_zero = false;
-
-      // row -= d
-      mpz_sub(&tmp, &row, d);
+      mpz_set_i(&digit, (int) n->digits[i]);
+      mpz_add(&tmp, &row, &digit);
       mpz_set(&row, &tmp);
+
+      q->digits[i] = 0;
+      while (mpz_gte(&row, d)) {
+        q->digits[i]++;
+
+        // row -= d
+        mpz_sub(&tmp, &row, d);
+        mpz_set(&row, &tmp);
+      }
     }
+
+    q->sign = 1;
+
+    mpz_mult(&tmp, q, d);
+    mpz_sub(r, n, &tmp);
+
+    q->sign = nsign * dsign;
+  }
+  else {
+    q->sign = 0;
+    mpz_set(r, n);
   }
 
   n->sign = nsign;
   d->sign = dsign;
-
-  q->sign = nsign * dsign;
-  if (q_is_zero) q->sign = 0;
 }
 
 #endif /* __418_MPZ_H__ */

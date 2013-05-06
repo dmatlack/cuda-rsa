@@ -212,21 +212,22 @@ void test_mod(const char * op1_str, const char *op2_str,
               const char *correct_str) {
   char got_str[1024];
 
-  mpz_t dst;
+  mpz_t quotient;
+  mpz_t remainder;
   mpz_t op1;
   mpz_t op2;
 
-  mpz_init(&dst);
+  mpz_init(&quotient);
+  mpz_init(&remainder);
   mpz_init(&op1);
   mpz_init(&op2);
 
   mpz_set_str(&op1, op1_str);
   mpz_set_str(&op2, op2_str);
 
-  //mpz_mod(&dst, &op1, &op2);
+  mpz_div(&quotient, &remainder, &op1, &op2);
 
-  mpz_get_str(&dst, got_str, 1024);
-
+  mpz_get_str(&remainder, got_str, 1024);
 
   if (!strcmp(correct_str, got_str)) {
     printf(".");
@@ -346,6 +347,8 @@ int main(int argc, char **argv) {
   test_mult("0",
             "2983492873401874018273482347156347856101573456091873465093245045",
             "0");
+  test_mult("239487", "5926729300018213879", 
+            "1419374619873461987240073");
 
 #define EQUAL      1
 #define NOT_EQUAL  0
@@ -381,6 +384,18 @@ int main(int argc, char **argv) {
   test_div("123234534524", "6345355", "19421");
   test_div("1419374619873461987346234", "239487",
            "5926729300018213879");
+
+  test_div("-12", "6", "-2");
+  test_div("-6", "7", "0");
+  test_div("-1234", "65", "-18");
+
+  test_div("12", "-6", "-2");
+  test_div("6", "-7", "0");
+  test_div("1234", "-65", "-18");
+
+  test_mod("0", "4", "0");
+  test_mod("1419374619873461987240073", "239487", "0");
+  test_mod("2374928749", "29", "23");
 
   gettimeofday(&end, NULL);
 
