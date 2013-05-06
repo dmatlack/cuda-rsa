@@ -265,6 +265,8 @@ __device__ __host__ void mpz_mult(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
   unsigned op2_digit_count = mpz_count_digits(op2);
   unsigned capacity = max(op1_digit_count, op2_digit_count);
 
+  mpz_clear(dst);
+
   /* In multiplication, if the operand with the most digits has D digits, 
    * then the result of the addition will have at most 2D digits. */
   MPZ_ENSURE_MEM(dst, 2*capacity);
@@ -468,6 +470,7 @@ __device__ __host__ void mpz_div(mpz_t *q, mpz_t *r, mpz_t *n, mpz_t *d) {
   mpz_init(&row);
   mpz_init(&tmp);
   mpz_init(&digit);
+  mpz_clear(q);
 
   n->sign = 1;
   d->sign = 1;
@@ -505,6 +508,58 @@ __device__ __host__ void mpz_div(mpz_t *q, mpz_t *r, mpz_t *n, mpz_t *d) {
 
   n->sign = nsign;
   d->sign = dsign;
+}
+
+/**
+ * Using exponentiation by squaring algorithm: 
+ * 
+ *  function modular_pow(base, exponent, modulus)
+ *    result := 1
+ *    while exponent > 0
+ *      if (exponent mod 2 == 1):
+ *         result := (result * base) mod modulus
+ *      exponent := exponent >> 1
+ *      base = (base * base) mod modulus
+ *    return result
+ */
+__device__ __inline__ void mpz_powmod(mpz_t *result, mpz_t *base, mpz_t *exp, mpz_t *mod) {
+  digit_t binary_exp[BINARY_CAPACITY];
+  unsigned iteration;
+  mpz_t tmp;
+  mpz_t ignore;
+  mpz_t _base;
+
+  mpz_init(&tmp);
+  mpz_init(&ignore);
+  mpz_init(&_base);
+
+  // _base = base % mod
+  mpz_set(&tmp, base);
+  mpz_div(&ignore, &_base, &tmp, mod);
+
+  digits_to_binary(binary_exp, exp->digits);
+
+  // result = 1
+  mpz_set_i(result, 1);
+
+  iteration = 0;
+  while (!digits_is_zero(binary_exp + iteration, BINARY_CAPACITY - iteration)) {
+    // if (binary_exp is odd)
+    if (binary_exp[iteration] == 1) {
+      // result = (result * base) % mod
+      mpz_mult(&tmp, result, &_base);
+      mpz_div(&ignore, result, &tmp, mod);
+    }
+
+    // binary_exp = binary_exp >> 1
+    iteration++;
+
+    // base = (base * base) % mod
+    mpz_set(&ignore, &_base);
+    mpz_mult(&tmp, &_base, &ignore);
+    mpz_div(&ignore, &_base, &tmp, mod);
+
+  }
 }
 
 #endif /* __418_MPZ_H__ */

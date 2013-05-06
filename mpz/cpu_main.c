@@ -258,6 +258,36 @@ void test_binary(const char *decimal, const char *binary) {
   }
 }
 
+void test_powmod(const char *base_str, const char *exp_str, const char *mod_str,
+                 const char *correct_str) {
+  char got_str[1024];
+  mpz_t got;
+  mpz_t base;
+  mpz_t exp;
+  mpz_t mod;
+
+  mpz_init(&base);
+  mpz_init(&exp);
+  mpz_init(&mod);
+  mpz_init(&got);
+
+  mpz_set_str(&base, base_str);
+  mpz_set_str(&exp, exp_str);
+  mpz_set_str(&mod, mod_str);
+
+  mpz_powmod(&got, &base, &exp, &mod);
+
+  mpz_get_str(&got, got_str, 1024);
+
+  if (!strcmp(correct_str, got_str)) {
+    printf(".");
+  }
+  else {
+    printf("\nFAIL: (%s ^ %s) %% %s = [Expected: %s, Got: %s]\n", 
+           base_str, exp_str, mod_str, correct_str, got_str);
+  }
+}
+
 int main(int argc, char **argv) {
   struct timeval start, end;
   unsigned long long elapsed_us;
@@ -377,6 +407,7 @@ int main(int argc, char **argv) {
   test_binary("2384729347191823792472938479238741", 
               "111010110010011100001000001101000101110111011011011010011010111"
               "111110010001111001110111000001100011111001010101");
+  test_binary("345", "101011001");
 
   test_div("12", "6", "2");
   test_div("6", "7", "0");
@@ -396,6 +427,12 @@ int main(int argc, char **argv) {
   test_mod("0", "4", "0");
   test_mod("1419374619873461987240073", "239487", "0");
   test_mod("2374928749", "29", "23");
+
+  test_powmod("4", "4", "3", "1");
+  test_powmod("345", "4", "234", "9");
+  test_powmod("345636", "1", "35264", "28260");
+  test_powmod("345636", "2", "35264", "3792");
+  //test_powmod("345636", "34", "35264", "18304");
 
   gettimeofday(&end, NULL);
 
