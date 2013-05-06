@@ -391,4 +391,52 @@ __device__ __host__ char* mpz_get_str(mpz_t *mpz, char *buf, unsigned bufsize) {
   return str;
 }
 
+__device__ __host__ char* mpz_get_binary_str(mpz_t *mpz, char *buf, 
+                                             unsigned bufsize) {
+  char *str;
+  int print_zeroes = 0; // don't print leading 0s
+  int i, str_index = 0;
+  int prefix_index = 0;
+  int max_size_of_buf = BINARY_CAPACITY + 1  // for the NULL terminator
+                                        + 1; // for the negative sign
+  digit_t bits[BINARY_CAPACITY];
+
+  // for now just assume the user provided buffer is large enough to hold
+  // the string representation of the integer...
+  (void) bufsize;
+
+  if (NULL == buf) {
+    str = (char *) malloc (sizeof(char) * (max_size_of_buf));
+  }
+  else {
+    str = buf;
+  }
+
+  if (mpz_is_negative(mpz)) {
+    str[0] = '-';
+    prefix_index = 1;
+  }
+
+  digits_to_binary(bits, mpz->digits);
+
+  for (i = BINARY_CAPACITY - 1; i >= 0; i--) {
+    int bit = bits[i];
+
+    if (bit != 0 || print_zeroes) {
+      print_zeroes = 1;
+      str[prefix_index + str_index++] = '0' + bit;
+    }
+  }
+
+  str[prefix_index + str_index] = (char) 0;
+
+  /* the number is zero */
+  if (str_index == 0) {
+    str[0] = '0';
+    str[1] = (char) 0;
+  }
+
+  return str;
+}
+
 #endif /* __418_MPZ_H__ */

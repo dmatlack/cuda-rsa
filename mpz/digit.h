@@ -14,8 +14,21 @@
 
 #define DIGIT_BASE       10
 #define DIGITS_CAPACITY  128
+#define BINARY_CAPACITY  426 // log2 (DIGIT_BASE ^ DIGITS_CAPACITY)
 
 typedef unsigned char digit_t;
+
+__device__ __host__ char digit_tochar(digit_t d) {
+  return '0' + d;
+}
+
+__device__ __host__ digit_t digit_fromchar(char c) {
+  if (c < '0' || c > '9') {
+    c = '0';
+  }
+
+  return c - '0';
+}
 
 /**
  * @brief Return true (non-zero) if all of the digits in the digits array
@@ -123,6 +136,16 @@ __device__ __host__ digit_t digits_add_across(digit_t *digits,
   return carry;
 }
 
+/** @breif Copy from into to. */
+__device__ __host__ void digits_copy(digit_t to[DIGITS_CAPACITY],
+                                     digit_t from[DIGITS_CAPACITY]) {
+  unsigned i;
+
+  for (i = 0; i < DIGITS_CAPACITY; i++) {
+    to[i] = from[i];
+  }
+}
+
 /**
  * @brief Perform DIGIT_BASE complement on the array of digits.
  *
@@ -132,8 +155,7 @@ __device__ __host__ digit_t digits_add_across(digit_t *digits,
  * 239487 -> 760518 + 1 ->  | 760519 |
  *                          +--------+
  */
-__device__ __host__ void digits_complement(digit_t *digits, 
-                                           unsigned num_digits) {
+__device__ __host__ void digits_complement(digit_t *digits, unsigned num_digits) {
   unsigned i;
 
   // Complement each digit by subtracting it from BASE-1
@@ -163,6 +185,18 @@ __device__ __host__ digit_t digits_add(digit_t *sum, unsigned sum_num_digits,
 
     sum[i] = add(a, b, &carry);
   }
+
+  return carry;
+}
+
+/** @brief Compute a += b. */
+__device__ __host__ digit_t digits_addeq(digit_t *a, unsigned a_num_digits,
+                                         digit_t *b, unsigned b_num_digits) {
+  digit_t tmp[DIGITS_CAPACITY];
+  digit_t carry;
+
+  carry = digits_add(tmp, DIGITS_CAPACITY, a, a_num_digits, b, b_num_digits);
+  digits_copy(a, tmp);
 
   return carry;
 }
@@ -219,16 +253,40 @@ __device__ __host__ void digits_mult(digit_t *product,
   long_multiplication(product, op1, op2, num_digits);
 }
 
-__device__ __host__ char digit_tochar(digit_t d) {
-  return '0' + d;
+
+/** @brief Compute a /= 2 */
+__device__ __host__ void digits_diveq_by_2(digit_t a[DIGITS_CAPACITY]) {
+  digit_t additive = 0, next_additive = 0;
+  int i;
+
+  for (i = DIGITS_CAPACITY - 1; i >= 0; i--) {
+    digit_t d = a[i];
+
+    additive = next_additive;
+    next_additive = (d % 2 == 1) ? (DIGIT_BASE/2) : 0;
+
+    a[i] = d / 2 + additive;
+  }
 }
 
-__device__ __host__ digit_t digit_fromchar(char c) {
-  if (c < '0' || c > '9') {
-    c = '0';
+/** @brief Convert the array of digits to an array of bits */
+__device__ __host__ void digits_to_binary(digit_t bits[BINARY_CAPACITY],
+                                          digit_t digits[DIGITS_CAPACITY]) {
+  digit_t tmp[DIGITS_CAPACITY];
+  unsigned i;
+  //unsigned num_bits;
+
+  digits_copy(tmp, digits);
+
+  // clear the binary array
+  for (i = 0; i < BINARY_CAPACITY; i++) bits[i] = 0;
+
+  i = 0;
+  while (!digits_is_zero(tmp, DIGITS_CAPACITY)) {
+    bits[i++] = tmp[0] % 2;
+    digits_diveq_by_2(tmp);
   }
 
-  return c - '0';
 }
 
 #endif /* __418_DIGIT_H__ */

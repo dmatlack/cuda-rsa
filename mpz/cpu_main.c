@@ -4,6 +4,8 @@
 #include "mpz.h"
 #include <string.h>
 #include <stdio.h>
+#include <time.h>
+#include <sys/time.h>
 
 void test_count_digits(const char *str) {
   mpz_t z;
@@ -175,7 +177,58 @@ void test_set_i(int i, const char *str) {
   }
 }
 
+void test_mod(const char * op1_str, const char *op2_str,
+              const char *correct_str) {
+  char got_str[1024];
+
+  mpz_t dst;
+  mpz_t op1;
+  mpz_t op2;
+
+  mpz_init(&dst);
+  mpz_init(&op1);
+  mpz_init(&op2);
+
+  mpz_set_str(&op1, op1_str);
+  mpz_set_str(&op2, op2_str);
+
+  //mpz_mod(&dst, &op1, &op2);
+
+  mpz_get_str(&dst, got_str, 1024);
+
+
+  if (!strcmp(correct_str, got_str)) {
+    printf(".");
+  }
+  else {
+    printf("\nFAIL: %s %% %s = [Expected: %s, Got: %s]\n", 
+           op1_str, op2_str, correct_str, got_str);
+  }
+}
+
+void test_binary(const char *decimal, const char *binary) {
+  char got_str[1024];
+  mpz_t mpz;
+
+  mpz_init(&mpz);
+
+  mpz_set_str(&mpz, decimal);
+
+  mpz_get_binary_str(&mpz, got_str, 1024);
+
+
+  if (!strcmp(binary, got_str)) {
+    printf(".");
+  }
+  else {
+    printf("\nFAIL: binary conversion of %s = [Expected: %s, Got: %s]\n", 
+           decimal, binary, got_str);
+  }
+}
+
 int main(int argc, char **argv) {
+  struct timeval start, end;
+  unsigned long long elapsed_us;
 
   (void)argc;
   (void)argv;
@@ -183,6 +236,8 @@ int main(int argc, char **argv) {
   /******************************************************/
   /*  Unit Tests for MPZ Code                           */
   /******************************************************/
+
+  gettimeofday(&start, NULL);
 
   test_count_digits("0");
   test_count_digits("2339487239847298374928734");
@@ -273,6 +328,34 @@ int main(int argc, char **argv) {
   test_equal("11111", "111", NOT_EQUAL);
   test_equal("111", "111111", NOT_EQUAL);
 
+  //test_mod("0", "10", "0");
+  //test_mod("10", "10", "0");
+  //test_mod("9230", "10", "0");
+  //test_mod("8", "7", "1");
+
+  test_binary("0", "0");
+  test_binary("1", "1");
+  test_binary("2", "10");
+  test_binary("3", "11");
+  test_binary("4", "100");
+  test_binary("5", "101");
+  test_binary("6", "110");
+  test_binary("7", "111");
+  test_binary("8", "1000");
+  test_binary("9", "1001");
+  test_binary("35791837492748", 
+              "1000001000110101101111110000100111011000001100");
+  test_binary("2384729347191823792472938479238741", 
+              "111010110010011100001000001101000101110111011011011010011010111"
+              "111110010001111001110111000001100011111001010101");
+
+  gettimeofday(&end, NULL);
+
   printf("\n");
+
+  elapsed_us = (end.tv_sec * 1000000 + end.tv_usec) - 
+               (start.tv_sec * 1000000 + start.tv_usec);
+
+  printf("Total Test Time: %llu us\n", elapsed_us);
   return 0;
 }
