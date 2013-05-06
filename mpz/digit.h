@@ -253,6 +253,17 @@ __device__ __host__ void digits_mult(digit_t *product,
   long_multiplication(product, op1, op2, num_digits);
 }
 
+__device__ __host__ void digits_rshift(digit_t *digits, unsigned capacity,
+                                       unsigned shift_amount) {
+  int i;
+  
+  for (i = capacity - shift_amount - 1; i >= 0; i--) {
+    digits[i + shift_amount] = digits[i];
+  }
+  for (i = 0; i < (int) shift_amount; i++) {
+    digits[i] = 0;
+  }
+}
 
 /** @brief Compute a /= 2 */
 __device__ __host__ void digits_diveq_by_2(digit_t a[DIGITS_CAPACITY]) {

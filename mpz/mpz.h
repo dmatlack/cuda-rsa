@@ -340,6 +340,7 @@ __device__ __host__ int mpz_gte(mpz_t *a, mpz_t *b) {
   return (mpz_compare(a, b) >= 0);
 }
 
+
 /**
  * @breif Return the string representation of the integer represented by the
  * mpz_t struct.
@@ -391,6 +392,13 @@ __device__ __host__ char* mpz_get_str(mpz_t *mpz, char *buf, unsigned bufsize) {
   return str;
 }
 
+__device__ __host__ void mpz_print(mpz_t *mpz) {
+  char str[1024];
+
+  mpz_get_str(mpz, str, 1024);
+  printf("%s", str);
+}
+
 __device__ __host__ char* mpz_get_binary_str(mpz_t *mpz, char *buf, 
                                              unsigned bufsize) {
   char *str;
@@ -437,6 +445,57 @@ __device__ __host__ char* mpz_get_binary_str(mpz_t *mpz, char *buf,
   }
 
   return str;
+}
+
+/**
+ * @brief Compute the quotient and remainder of n / d.
+ *
+ * Credit for the algorithm to compute the quotient goes to Steven S. Skiena. 
+ * Original source code can be found here:
+ *        http://www.cs.sunysb.edu/~skiena/392/programs/bignum.c
+ */
+__device__ __host__ void mpz_div(mpz_t *q, mpz_t *r, mpz_t *n, mpz_t *d) {
+  unsigned n_digit_count = mpz_count_digits(n);
+  mpz_t row;
+  mpz_t tmp;
+  mpz_t digit;
+  int i;
+  int nsign = n->sign;
+  int dsign = d->sign;
+  int q_is_zero = true;
+
+  (void)r;
+
+  mpz_init(&row);
+  mpz_init(&tmp);
+  mpz_init(&digit);
+
+  n->sign = 1;
+  d->sign = 1;
+
+  for (i = n_digit_count - 1; i >= 0; i--) {
+    digits_rshift(row.digits, row.capacity, 1);
+
+    mpz_set_i(&digit, (int) n->digits[i]);
+    mpz_add(&tmp, &row, &digit);
+    mpz_set(&row, &tmp);
+
+    q->digits[i] = 0;
+    while (mpz_gte(&row, d)) {
+      q->digits[i]++;
+      q_is_zero = false;
+
+      // row -= d
+      mpz_sub(&tmp, &row, d);
+      mpz_set(&row, &tmp);
+    }
+  }
+
+  n->sign = nsign;
+  d->sign = dsign;
+
+  q->sign = nsign * dsign;
+  if (q_is_zero) q->sign = 0;
 }
 
 #endif /* __418_MPZ_H__ */

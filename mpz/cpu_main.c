@@ -112,6 +112,37 @@ void test_mult(const char * op1_str, const char *op2_str,
   }
 }
 
+void test_div(const char * op1_str, const char *op2_str,
+               const char *correct_str) {
+  char got_str[1024];
+
+  mpz_t quotient;
+  mpz_t remainder;
+  mpz_t op1;
+  mpz_t op2;
+
+  mpz_init(&quotient);
+  mpz_init(&remainder);
+  mpz_init(&op1);
+  mpz_init(&op2);
+
+  mpz_set_str(&op1, op1_str);
+  mpz_set_str(&op2, op2_str);
+
+  mpz_div(&quotient, &remainder, &op1, &op2);
+
+  mpz_get_str(&quotient, got_str, 1024);
+
+
+  if (!strcmp(correct_str, got_str)) {
+    printf(".");
+  }
+  else {
+    printf("\nFAIL: %s / %s = [Expected: %s, Got: %s]\n", 
+           op1_str, op2_str, correct_str, got_str);
+  }
+}
+
 void test_equal(const char * op1_str, const char *op2_str,
                 int expected_equality) {
   int got_equality;
@@ -328,11 +359,6 @@ int main(int argc, char **argv) {
   test_equal("11111", "111", NOT_EQUAL);
   test_equal("111", "111111", NOT_EQUAL);
 
-  //test_mod("0", "10", "0");
-  //test_mod("10", "10", "0");
-  //test_mod("9230", "10", "0");
-  //test_mod("8", "7", "1");
-
   test_binary("0", "0");
   test_binary("1", "1");
   test_binary("2", "10");
@@ -348,6 +374,13 @@ int main(int argc, char **argv) {
   test_binary("2384729347191823792472938479238741", 
               "111010110010011100001000001101000101110111011011011010011010111"
               "111110010001111001110111000001100011111001010101");
+
+  test_div("12", "6", "2");
+  test_div("6", "7", "0");
+  test_div("1234", "65", "18");
+  test_div("123234534524", "6345355", "19421");
+  test_div("1419374619873461987346234", "239487",
+           "5926729300018213879");
 
   gettimeofday(&end, NULL);
 
