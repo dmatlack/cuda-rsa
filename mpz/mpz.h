@@ -19,47 +19,44 @@ typedef struct {
   char     sign;
 } mpz_t;
 
+/**
+ * @brief Check that the mpz_t struct has enough memory to store __capacity
+ * digits.
+ */
 #ifndef __CUDACC__
-#define MPZ_ENSURE_MEM(__mpz, __capacity) \
-  do {\
-    if ((__mpz)->capacity < (__capacity)) {\
-      printf("MPZ memory error: %s at line %d.\n", __func__, __LINE__);\
-      printf("\tmpz capacity: %u, requested capacity %u\n", (__mpz)->capacity, (__capacity));\
-      exit(4);\
-    }\
+#define CHECK_MEM(__mpz, __capacity) \
+  do {                                                                  \
+    if ((__mpz)->capacity < (__capacity)) {                             \
+      printf("MPZ memory error at %s:%d.\n", __func__, __LINE__);       \
+      printf("\tmpz capacity: %u, requested capacity %u\n",             \
+             (__mpz)->capacity, (__capacity));                          \
+      exit(4);                                                          \
+    }                                                                   \
   } while (0) 
 #else
-#define MPZ_ENSURE_MEM(m,c)
+#define CHECK_MEM(__mpz, __capacity)
 #endif
 
 /**
- * @brief Count the number of digits (actually being used) in the mpz
- * struct.
- *
- * For example, 0-9       = 1 digit, 
- *              1000-9999 = 4 digits, 
- *              etc.
- *
+ * @brief Do some sanity checking on the mpz_t sign field.
  */
-__device__ __host__ unsigned mpz_count_digits(mpz_t *mpz) {
-  int is_leading_zero = true;
-  int count = 0;
-  int i;
-
-  for (i = mpz->capacity - 1; i >= 0; i--) {
-    digit_t d = mpz->digits[i];
-
-    if (0 == d && is_leading_zero) continue;
-
-    is_leading_zero = false;
-    count++;
-  }
-
-  /* special case where all digits are 0 */
-  if (count == 0) return 1;
-
-  return count;
-}
+#ifndef __CUDACC__
+#define CHECK_SIGN(__mpz) \
+  do {                                                                \
+    if (digits_is_zero((__mpz)->digits, (__mpz)->capacity)) {         \
+      if (0 != (__mpz)->sign) {                                       \
+        printf("Sign should be 0 in %s:%d but is %d instead.\n",      \
+             __func__, __LINE__, (__mpz)->sign);                      \
+      }                                                               \
+    }                                                                 \
+    else if (1 != (__mpz)->sign && -1 != (__mpz)->sign) {             \
+      printf("Sign should be 1 or -1 in %s:%d but is %d instead.\n",  \
+             __func__, __LINE__, (__mpz)->sign);                      \
+    }                                                                 \
+  } while (0)
+#else
+#define CHECK_SIGN(__mpz)
+#endif
 
 inline __device__ __host__ int mpz_is_negative(mpz_t *mpz) {
   if (digits_is_zero(mpz->digits, mpz->capacity)) return false;
@@ -71,36 +68,11 @@ inline __device__ __host__ void mpz_negate(mpz_t *mpz) {
 }
 
 /**
- * @brief Set the mpz_t struct to zero.
- */
-__device__ __host__ void mpz_clear(mpz_t *mpz) {
-  unsigned i;
-
-  for (i = 0; i < mpz->capacity; i++) {
-    mpz->digits[i] = 0;
-  }
-}
-
-/**
- * @brief If the number is zero, the sign should be zero.
- */
-static inline __device__ __host__ void _assert_sign(mpz_t *mpz) {
-#ifndef __CUDACC__
-  if (digits_is_zero(mpz->digits, mpz->capacity)) {
-    assert(0 == mpz->sign);
-  }
-  else {
-    assert(1 == mpz->sign || -1 == mpz->sign);
-  }
-#endif
-}
-
-/**
- * @brief Initialize an mpz_t struct. Essentially zeroing out the digits array.
+ * @brief Initialize an mpz struct to 0.
  */
 __device__ __host__ void mpz_init(mpz_t *mpz) {
   mpz->capacity = DIGITS_CAPACITY;
-  mpz_clear(mpz);
+  digits_set_zero(mpz->digits);
   mpz->sign = 0;
 }
 
@@ -122,16 +94,8 @@ __device__ __host__ void mpz_set(mpz_t *to, mpz_t *from) {
  * @brief Set the mpz integer to the provided integer.
  */
 __device__ __host__ void mpz_set_i(mpz_t *mpz, int z) {
-  unsigned i;
-
   mpz->sign = (z == 0) ? 0 : ((z > 0) ? 1: -1);
-
-  z = abs(z);
-  i = 0;
-  for (i = 0; i < mpz->capacity; i++) {
-    mpz->digits[i] = z % 10;
-    z /= 10;
-  }
+  digits_set_ui(mpz->digits, abs(z));
 }
 
 /**
@@ -152,9 +116,9 @@ __device__ __host__ void mpz_set_str(mpz_t *mpz, const char *str) {
   }
 
   num_digits = cuda_strlen(str);
-  MPZ_ENSURE_MEM(mpz, num_digits);
+  CHECK_MEM(mpz, num_digits);
 
-  mpz_clear(mpz);
+  digits_set_zero(mpz->digits);
 
   is_zero = true;
   for (i = 0; i < num_digits; i++) {
@@ -186,8 +150,8 @@ __device__ __host__ void mpz_destroy(mpz_t *mpz) {
  * @warning Assumes dst != op1 != op2
  */
 __device__ __host__ void mpz_add(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
-  unsigned op1_digit_count = mpz_count_digits(op1);
-  unsigned op2_digit_count = mpz_count_digits(op2);
+  unsigned op1_digit_count = digits_count(op1->digits);
+  unsigned op2_digit_count = digits_count(op2->digits);
 
   /* In addition, if the operand with the most digits has D digits, then
    * the result of the addition will have at most D + 1 digits. */
@@ -196,11 +160,11 @@ __device__ __host__ void mpz_add(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
   /* Make sure all of the mpz structs have enough memory to hold all of
    * the digits. We will be doing 10's complement so everyone needs to 
    * have enough digits. */
-  MPZ_ENSURE_MEM(dst, capacity);
-  MPZ_ENSURE_MEM(op1, capacity);
-  MPZ_ENSURE_MEM(op2, capacity);
+  CHECK_MEM(dst, capacity);
+  CHECK_MEM(op1, capacity);
+  CHECK_MEM(op2, capacity);
 
-  mpz_clear(dst);
+  digits_set_zero(dst->digits);
 
   /* If both are negative, treate them as positive and negate the result */
   if (mpz_is_negative(op1) && mpz_is_negative(op2)) {
@@ -236,10 +200,9 @@ __device__ __host__ void mpz_add(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
     if (mpz_is_negative(op2)) digits_complement(op2->digits, op2->capacity);
   }
 
-  // FIXME remove eventually
-  _assert_sign(op1);
-  _assert_sign(op2);
-  _assert_sign(dst);
+  CHECK_SIGN(op1);
+  CHECK_SIGN(op2);
+  CHECK_SIGN(dst);
 }
 
 /**
@@ -261,17 +224,17 @@ __device__ __host__ void mpz_sub(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
  * @warning Assumes dst != op1 != op2
  */
 __device__ __host__ void mpz_mult(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
-  unsigned op1_digit_count = mpz_count_digits(op1);
-  unsigned op2_digit_count = mpz_count_digits(op2);
+  unsigned op1_digit_count = digits_count(op1->digits);
+  unsigned op2_digit_count = digits_count(op2->digits);
   unsigned capacity = max(op1_digit_count, op2_digit_count);
 
-  mpz_clear(dst);
+  digits_set_zero(dst->digits);
 
   /* In multiplication, if the operand with the most digits has D digits, 
    * then the result of the addition will have at most 2D digits. */
-  MPZ_ENSURE_MEM(dst, 2*capacity);
-  MPZ_ENSURE_MEM(op1,   capacity);
-  MPZ_ENSURE_MEM(op2,   capacity);
+  CHECK_MEM(dst, 2*capacity);
+  CHECK_MEM(op1,   capacity);
+  CHECK_MEM(op2,   capacity);
 
   /* We pass in capacity as the number of digits rather that the actual
    * number of digits in each mpz_t struct. This is done because the 
@@ -282,10 +245,9 @@ __device__ __host__ void mpz_mult(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
   /* Compute the sign of the product */
   dst->sign = op1->sign * op2->sign;
 
-  // TODO remove eventually
-  _assert_sign(op1);
-  _assert_sign(op2);
-  _assert_sign(dst);
+  CHECK_SIGN(op1);
+  CHECK_SIGN(op2);
+  CHECK_SIGN(dst);
 }
 
 /** 
@@ -355,8 +317,8 @@ __device__ __host__ char* mpz_get_str(mpz_t *mpz, char *buf, unsigned bufsize) {
   int print_zeroes = 0; // don't print leading 0s
   int i, str_index = 0;
   int prefix_index = 0;
-  int max_size_of_buf = mpz_count_digits(mpz) + 1  // for the NULL terminator
-                                              + 1; // for the negative sign
+  int max_size_of_buf = digits_count(mpz->digits) + 1  // for the NULL terminator
+                                                  + 1; // for the negative sign
 
   // for now just assume the user provided buffer is large enough to hold
   // the string representation of the integer...
@@ -395,11 +357,14 @@ __device__ __host__ char* mpz_get_str(mpz_t *mpz, char *buf, unsigned bufsize) {
 }
 
 __device__ __host__ void mpz_print(mpz_t *mpz) {
+#ifndef __CUDACC__
   char str[1024];
 
   mpz_get_str(mpz, str, 1024);
   printf("%s", str);
+#endif
 }
+
 
 __device__ __host__ char* mpz_get_binary_str(mpz_t *mpz, char *buf, 
                                              unsigned bufsize) {
@@ -457,7 +422,7 @@ __device__ __host__ char* mpz_get_binary_str(mpz_t *mpz, char *buf,
  *        http://www.cs.sunysb.edu/~skiena/392/programs/bignum.c
  */
 __device__ __host__ void mpz_div(mpz_t *q, mpz_t *r, mpz_t *n, mpz_t *d) {
-  unsigned n_digit_count = mpz_count_digits(n);
+  unsigned n_digit_count = digits_count(n->digits);
   mpz_t row;
   mpz_t tmp;
   mpz_t digit;
@@ -470,10 +435,12 @@ __device__ __host__ void mpz_div(mpz_t *q, mpz_t *r, mpz_t *n, mpz_t *d) {
   mpz_init(&row);
   mpz_init(&tmp);
   mpz_init(&digit);
-  mpz_clear(q);
 
-  n->sign = 1;
-  d->sign = 1;
+  mpz_set_i(q, 0);
+  mpz_set_i(r, 0);
+
+  if (n->sign < 0) n->sign = 1;
+  if (d->sign < 0) d->sign = 1;
 
   if (mpz_gt(n, d)) {
 
@@ -502,12 +469,19 @@ __device__ __host__ void mpz_div(mpz_t *q, mpz_t *r, mpz_t *n, mpz_t *d) {
     q->sign = nsign * dsign;
   }
   else {
-    q->sign = 0;
+    // quotient = 0
+    mpz_set_i(q, 0);
+    // remainder = numerator
     mpz_set(r, n);
   }
 
   n->sign = nsign;
   d->sign = dsign;
+
+  CHECK_SIGN(q);
+  CHECK_SIGN(r);
+  CHECK_SIGN(n);
+  CHECK_SIGN(d);
 }
 
 /**
@@ -522,12 +496,16 @@ __device__ __host__ void mpz_div(mpz_t *q, mpz_t *r, mpz_t *n, mpz_t *d) {
  *      base = (base * base) mod modulus
  *    return result
  */
-__device__ __inline__ void mpz_powmod(mpz_t *result, mpz_t *base, mpz_t *exp, mpz_t *mod) {
+__device__ __inline__ void mpz_powmod(mpz_t *result, mpz_t *base, 
+                                      mpz_t *exp, mpz_t *mod) {
   digit_t binary_exp[BINARY_CAPACITY];
   unsigned iteration;
   mpz_t tmp;
   mpz_t ignore;
   mpz_t _base;
+  
+  // result = 1
+  mpz_set_i(result, 1);
 
   mpz_init(&tmp);
   mpz_init(&ignore);
@@ -538,9 +516,6 @@ __device__ __inline__ void mpz_powmod(mpz_t *result, mpz_t *base, mpz_t *exp, mp
   mpz_div(&ignore, &_base, &tmp, mod);
 
   digits_to_binary(binary_exp, exp->digits);
-
-  // result = 1
-  mpz_set_i(result, 1);
 
   iteration = 0;
   while (!digits_is_zero(binary_exp + iteration, BINARY_CAPACITY - iteration)) {

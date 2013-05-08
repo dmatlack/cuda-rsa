@@ -44,6 +44,52 @@ __device__ __host__ int digits_is_zero(digit_t *digits,
   return 1;
 }
 
+__device__ __host__ void digits_set_zero(digit_t digits[DIGITS_CAPACITY]) {
+  unsigned i;
+  for (i = 0; i < DIGITS_CAPACITY; i++) digits[i] = 0;
+}
+
+__device__ __host__ void digits_set_ui(digit_t digits[DIGITS_CAPACITY],
+                                       unsigned z) {
+  unsigned i;
+
+  i = 0;
+  for (i = 0; i < DIGITS_CAPACITY; i++) {
+    digits[i] = z % 10;
+    z /= 10;
+  }
+  
+}
+
+/**
+ * @brief Count the number of digits in use in the digits array.
+ *
+ * E.g.
+ *
+ * digits = { 2, 0, 0, ..., 0 } represents 2 which is 1 digit
+ * digits = { 0, 1, 5, 0, ..., 0 } represents 510 which is 3 digits
+ *
+ */
+__device__ __host__ unsigned digits_count(digit_t digits[DIGITS_CAPACITY]) {
+  int is_leading_zero = true;
+  unsigned count = 0;
+  int i;
+
+  for (i = DIGITS_CAPACITY - 1; i >= 0; i--) {
+    digit_t d = digits[i];
+
+    if (0 == d && is_leading_zero) continue;
+
+    is_leading_zero = false;
+    count++;
+  }
+
+  /* special case where all digits are 0 */
+  if (count == 0) return 1;
+
+  return count;
+}
+
 /**
  * @brief Comare the two arrays of digits.
  *
@@ -188,19 +234,6 @@ __device__ __host__ digit_t digits_add(digit_t *sum, unsigned sum_num_digits,
 
   return carry;
 }
-
-/** @brief Compute a += b. */
-__device__ __host__ digit_t digits_addeq(digit_t *a, unsigned a_num_digits,
-                                         digit_t *b, unsigned b_num_digits) {
-  digit_t tmp[DIGITS_CAPACITY];
-  digit_t carry;
-
-  carry = digits_add(tmp, DIGITS_CAPACITY, a, a_num_digits, b, b_num_digits);
-  digits_copy(a, tmp);
-
-  return carry;
-}
-
 
 /**
  * @brief Compute product = op1 * op2 using the Long Multiplication

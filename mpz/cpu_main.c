@@ -15,13 +15,13 @@ void test_count_digits(const char *str) {
 
   mpz_set_str(&z, str);
 
-  count = mpz_count_digits(&z);
+  count = digits_count(z.digits);
 
   if (count == strlen(str)) {
     printf(".");
   }
   else {
-    printf("\nFAIL: mpz_count_digits(%s) = [Expected: %lu, Got: %u]\n",
+    printf("\nFAIL: digits_count(%s) = [Expected: %lu, Got: %u]\n",
            str, strlen(str), count);
   }
 }
@@ -432,7 +432,7 @@ int main(int argc, char **argv) {
   test_powmod("345", "4", "234", "9");
   test_powmod("345636", "1", "35264", "28260");
   test_powmod("345636", "2", "35264", "3792");
-  //test_powmod("345636", "34", "35264", "18304");
+  test_powmod("345636", "34", "35264", "18304");
 
   gettimeofday(&end, NULL);
 
