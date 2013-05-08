@@ -10,18 +10,25 @@
 #ifndef __418_DIGIT_H__
 #define __418_DIGIT_H__
 
-#ifndef __CUDACC__ /* when compiling with gcc... */
+#include "compile.h"
 
-#define __device__
-#define __host__
-
-#include <string.h>
-
-#endif /* __CUDACC__ */
+#define DIGIT_BASE       10
+#define DIGITS_CAPACITY  128
+#define BINARY_CAPACITY  426 // log2 (DIGIT_BASE ^ DIGITS_CAPACITY)
 
 typedef unsigned char digit_t;
 
-#define DIGIT_BASE 10
+__device__ __host__ char digit_tochar(digit_t d) {
+  return '0' + d;
+}
+
+__device__ __host__ digit_t digit_fromchar(char c) {
+  if (c < '0' || c > '9') {
+    c = '0';
+  }
+
+  return c - '0';
+}
 
 /**
  * @brief Return true (non-zero) if all of the digits in the digits array
@@ -35,6 +42,52 @@ __device__ __host__ int digits_is_zero(digit_t *digits,
     if (digits[i] != 0) return 0;
   }
   return 1;
+}
+
+__device__ __host__ void digits_set_zero(digit_t digits[DIGITS_CAPACITY]) {
+  unsigned i;
+  for (i = 0; i < DIGITS_CAPACITY; i++) digits[i] = 0;
+}
+
+__device__ __host__ void digits_set_ui(digit_t digits[DIGITS_CAPACITY],
+                                       unsigned z) {
+  unsigned i;
+
+  i = 0;
+  for (i = 0; i < DIGITS_CAPACITY; i++) {
+    digits[i] = z % 10;
+    z /= 10;
+  }
+  
+}
+
+/**
+ * @brief Count the number of digits in use in the digits array.
+ *
+ * E.g.
+ *
+ * digits = { 2, 0, 0, ..., 0 } represents 2 which is 1 digit
+ * digits = { 0, 1, 5, 0, ..., 0 } represents 510 which is 3 digits
+ *
+ */
+__device__ __host__ unsigned digits_count(digit_t digits[DIGITS_CAPACITY]) {
+  int is_leading_zero = true;
+  unsigned count = 0;
+  int i;
+
+  for (i = DIGITS_CAPACITY - 1; i >= 0; i--) {
+    digit_t d = digits[i];
+
+    if (0 == d && is_leading_zero) continue;
+
+    is_leading_zero = false;
+    count++;
+  }
+
+  /* special case where all digits are 0 */
+  if (count == 0) return 1;
+
+  return count;
 }
 
 /**
@@ -129,6 +182,16 @@ __device__ __host__ digit_t digits_add_across(digit_t *digits,
   return carry;
 }
 
+/** @breif Copy from into to. */
+__device__ __host__ void digits_copy(digit_t to[DIGITS_CAPACITY],
+                                     digit_t from[DIGITS_CAPACITY]) {
+  unsigned i;
+
+  for (i = 0; i < DIGITS_CAPACITY; i++) {
+    to[i] = from[i];
+  }
+}
+
 /**
  * @brief Perform DIGIT_BASE complement on the array of digits.
  *
@@ -138,8 +201,7 @@ __device__ __host__ digit_t digits_add_across(digit_t *digits,
  * 239487 -> 760518 + 1 ->  | 760519 |
  *                          +--------+
  */
-__device__ __host__ void digits_complement(digit_t *digits, 
-                                           unsigned num_digits) {
+__device__ __host__ void digits_complement(digit_t *digits, unsigned num_digits) {
   unsigned i;
 
   // Complement each digit by subtracting it from BASE-1
@@ -172,7 +234,6 @@ __device__ __host__ digit_t digits_add(digit_t *sum, unsigned sum_num_digits,
 
   return carry;
 }
-
 
 /**
  * @brief Compute product = op1 * op2 using the Long Multiplication
@@ -225,16 +286,51 @@ __device__ __host__ void digits_mult(digit_t *product,
   long_multiplication(product, op1, op2, num_digits);
 }
 
-__device__ __host__ char digit_tochar(digit_t d) {
-  return '0' + d;
+__device__ __host__ void digits_rshift(digit_t *digits, unsigned capacity,
+                                       unsigned shift_amount) {
+  int i;
+  
+  for (i = capacity - shift_amount - 1; i >= 0; i--) {
+    digits[i + shift_amount] = digits[i];
+  }
+  for (i = 0; i < (int) shift_amount; i++) {
+    digits[i] = 0;
+  }
 }
 
-__device__ __host__ digit_t digit_fromchar(char c) {
-  if (c < '0' || c > '9') {
-    c = '0';
+/** @brief Compute a /= 2 */
+__device__ __host__ void digits_diveq_by_2(digit_t a[DIGITS_CAPACITY]) {
+  digit_t additive = 0, next_additive = 0;
+  int i;
+
+  for (i = DIGITS_CAPACITY - 1; i >= 0; i--) {
+    digit_t d = a[i];
+
+    additive = next_additive;
+    next_additive = (d % 2 == 1) ? (DIGIT_BASE/2) : 0;
+
+    a[i] = d / 2 + additive;
+  }
+}
+
+/** @brief Convert the array of digits to an array of bits */
+__device__ __host__ void digits_to_binary(digit_t bits[BINARY_CAPACITY],
+                                          digit_t digits[DIGITS_CAPACITY]) {
+  digit_t tmp[DIGITS_CAPACITY];
+  unsigned i;
+  //unsigned num_bits;
+
+  digits_copy(tmp, digits);
+
+  // clear the binary array
+  for (i = 0; i < BINARY_CAPACITY; i++) bits[i] = 0;
+
+  i = 0;
+  while (!digits_is_zero(tmp, DIGITS_CAPACITY)) {
+    bits[i++] = tmp[0] % 2;
+    digits_diveq_by_2(tmp);
   }
 
-  return c - '0';
 }
 
 #endif /* __418_DIGIT_H__ */

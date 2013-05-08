@@ -6,7 +6,7 @@
 #ifndef __418_CUDA_STRING_H__
 #define __418_CUDA_STRING_H__
 
-__device__ __host__ int cuda_strlen(const char *str) {
+inline __device__ __host__ int cuda_strlen(const char *str) {
   int len = 0;
 
   while (str[len] != (char) 0) len++;

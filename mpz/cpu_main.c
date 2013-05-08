@@ -4,6 +4,8 @@
 #include "mpz.h"
 #include <string.h>
 #include <stdio.h>
+#include <time.h>
+#include <sys/time.h>
 
 void test_count_digits(const char *str) {
   mpz_t z;
@@ -13,13 +15,13 @@ void test_count_digits(const char *str) {
 
   mpz_set_str(&z, str);
 
-  count = mpz_count_digits(&z);
+  count = digits_count(z.digits);
 
   if (count == strlen(str)) {
     printf(".");
   }
   else {
-    printf("\nFAIL: mpz_count_digits(%s) = [Expected: %lu, Got: %u]\n",
+    printf("\nFAIL: digits_count(%s) = [Expected: %lu, Got: %u]\n",
            str, strlen(str), count);
   }
 }
@@ -110,6 +112,37 @@ void test_mult(const char * op1_str, const char *op2_str,
   }
 }
 
+void test_div(const char * op1_str, const char *op2_str,
+               const char *correct_str) {
+  char got_str[1024];
+
+  mpz_t quotient;
+  mpz_t remainder;
+  mpz_t op1;
+  mpz_t op2;
+
+  mpz_init(&quotient);
+  mpz_init(&remainder);
+  mpz_init(&op1);
+  mpz_init(&op2);
+
+  mpz_set_str(&op1, op1_str);
+  mpz_set_str(&op2, op2_str);
+
+  mpz_div(&quotient, &remainder, &op1, &op2);
+
+  mpz_get_str(&quotient, got_str, 1024);
+
+
+  if (!strcmp(correct_str, got_str)) {
+    printf(".");
+  }
+  else {
+    printf("\nFAIL: %s / %s = [Expected: %s, Got: %s]\n", 
+           op1_str, op2_str, correct_str, got_str);
+  }
+}
+
 void test_equal(const char * op1_str, const char *op2_str,
                 int expected_equality) {
   int got_equality;
@@ -175,7 +208,118 @@ void test_set_i(int i, const char *str) {
   }
 }
 
+void test_mod(const char * op1_str, const char *op2_str,
+              const char *correct_str) {
+  char got_str[1024];
+
+  mpz_t quotient;
+  mpz_t remainder;
+  mpz_t op1;
+  mpz_t op2;
+
+  mpz_init(&quotient);
+  mpz_init(&remainder);
+  mpz_init(&op1);
+  mpz_init(&op2);
+
+  mpz_set_str(&op1, op1_str);
+  mpz_set_str(&op2, op2_str);
+
+  mpz_div(&quotient, &remainder, &op1, &op2);
+
+  mpz_get_str(&remainder, got_str, 1024);
+
+  if (!strcmp(correct_str, got_str)) {
+    printf(".");
+  }
+  else {
+    printf("\nFAIL: %s %% %s = [Expected: %s, Got: %s]\n", 
+           op1_str, op2_str, correct_str, got_str);
+  }
+}
+
+void test_binary(const char *decimal, const char *binary) {
+  char got_str[1024];
+  mpz_t mpz;
+
+  mpz_init(&mpz);
+
+  mpz_set_str(&mpz, decimal);
+
+  mpz_get_binary_str(&mpz, got_str, 1024);
+
+
+  if (!strcmp(binary, got_str)) {
+    printf(".");
+  }
+  else {
+    printf("\nFAIL: binary conversion of %s = [Expected: %s, Got: %s]\n", 
+           decimal, binary, got_str);
+  }
+}
+
+void test_powmod(const char *base_str, const char *exp_str, const char *mod_str,
+                 const char *correct_str) {
+  char got_str[1024];
+  mpz_t got;
+  mpz_t base;
+  mpz_t exp;
+  mpz_t mod;
+
+  mpz_init(&base);
+  mpz_init(&exp);
+  mpz_init(&mod);
+  mpz_init(&got);
+
+  mpz_set_str(&base, base_str);
+  mpz_set_str(&exp, exp_str);
+  mpz_set_str(&mod, mod_str);
+
+  mpz_powmod(&got, &base, &exp, &mod);
+
+  mpz_get_str(&got, got_str, 1024);
+
+  if (!strcmp(correct_str, got_str)) {
+    printf(".");
+  }
+  else {
+    printf("\nFAIL: (%s ^ %s) %% %s = [Expected: %s, Got: %s]\n", 
+           base_str, exp_str, mod_str, correct_str, got_str);
+  }
+}
+
+void test_gcd(const char * op1_str, const char *op2_str,
+              const char *correct_str) {
+  char got_str[1024];
+
+  mpz_t gcd;
+  mpz_t op1;
+  mpz_t op2;
+
+  mpz_init(&gcd);
+  mpz_init(&op1);
+  mpz_init(&op2);
+
+  mpz_set_str(&op1, op1_str);
+  mpz_set_str(&op2, op2_str);
+
+  mpz_gcd(&gcd, &op1, &op2);
+
+  mpz_get_str(&gcd, got_str, 1024);
+
+  if (!strcmp(correct_str, got_str)) {
+    printf(".");
+  }
+  else {
+    printf("\nFAIL: GCD(%s, %s) = [Expected: %s, Got: %s]\n", 
+           op1_str, op2_str, correct_str, got_str);
+  }
+}
+
+
 int main(int argc, char **argv) {
+  struct timeval start, end;
+  unsigned long long elapsed_us;
 
   (void)argc;
   (void)argv;
@@ -183,6 +327,8 @@ int main(int argc, char **argv) {
   /******************************************************/
   /*  Unit Tests for MPZ Code                           */
   /******************************************************/
+
+  gettimeofday(&start, NULL);
 
   test_count_digits("0");
   test_count_digits("2339487239847298374928734");
@@ -260,6 +406,8 @@ int main(int argc, char **argv) {
   test_mult("0",
             "2983492873401874018273482347156347856101573456091873465093245045",
             "0");
+  test_mult("239487", "5926729300018213879", 
+            "1419374619873461987240073");
 
 #define EQUAL      1
 #define NOT_EQUAL  0
@@ -273,6 +421,59 @@ int main(int argc, char **argv) {
   test_equal("11111", "111", NOT_EQUAL);
   test_equal("111", "111111", NOT_EQUAL);
 
+  test_binary("0", "0");
+  test_binary("1", "1");
+  test_binary("2", "10");
+  test_binary("3", "11");
+  test_binary("4", "100");
+  test_binary("5", "101");
+  test_binary("6", "110");
+  test_binary("7", "111");
+  test_binary("8", "1000");
+  test_binary("9", "1001");
+  test_binary("35791837492748", 
+              "1000001000110101101111110000100111011000001100");
+  test_binary("2384729347191823792472938479238741", 
+              "111010110010011100001000001101000101110111011011011010011010111"
+              "111110010001111001110111000001100011111001010101");
+  test_binary("345", "101011001");
+
+  test_div("12", "6", "2");
+  test_div("6", "7", "0");
+  test_div("1234", "65", "18");
+  test_div("123234534524", "6345355", "19421");
+  test_div("1419374619873461987346234", "239487",
+           "5926729300018213879");
+
+  test_div("-12", "6", "-2");
+  test_div("-6", "7", "0");
+  test_div("-1234", "65", "-18");
+
+  test_div("12", "-6", "-2");
+  test_div("6", "-7", "0");
+  test_div("1234", "-65", "-18");
+
+  test_mod("0", "4", "0");
+  test_mod("1419374619873461987240073", "239487", "0");
+  test_mod("2374928749", "29", "23");
+
+  test_powmod("4", "4", "3", "1");
+  test_powmod("345", "4", "234", "9");
+  test_powmod("345636", "1", "35264", "28260");
+  test_powmod("345636", "2", "35264", "3792");
+  test_powmod("345636", "34", "35264", "18304");
+
+  test_gcd("2918", "288", "2");
+  test_gcd("288", "2918", "2");
+  test_gcd("173982", "1009212", "6");
+
+  gettimeofday(&end, NULL);
+
   printf("\n");
+
+  elapsed_us = (end.tv_sec * 1000000 + end.tv_usec) - 
+               (start.tv_sec * 1000000 + start.tv_usec);
+
+  printf("Total Test Time: %llu us\n", elapsed_us);
   return 0;
 }
