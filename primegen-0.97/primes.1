@@ -1,0 +1,43 @@
+.TH primes 1
+.SH NAME
+primes \- generate prime numbers
+.SH SYNTAX
+.B primes
+[
+.I low
+[
+.I high
+]
+]
+.SH DESCRIPTION
+.B primes
+prints the sequence of prime numbers:
+2, 3, 5, 7, 11, and so on,
+one per line.
+
+If
+.I low
+is supplied,
+.B primes
+does not print any primes smaller than
+.IR low .
+
+If
+.I high
+is supplied,
+.B primes
+does not print any primes larger than
+.IR high .
+If 
+.I high
+is not supplied,
+.B primes
+stops at 1000000000;
+the last prime is 999999937.
+
+.B primes
+can handle
+.I high
+as large as 1000000000000000.
+.SH "SEE ALSO"
+primegen(3)

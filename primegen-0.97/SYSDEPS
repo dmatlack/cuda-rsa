@@ -1,0 +1,7 @@
+VERSION
+systype
+uint32.h
+int64.h
+uint64.h
+hasgethr.h
+hasrdtsc.h

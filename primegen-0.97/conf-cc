@@ -1,0 +1,3 @@
+gcc -O1 -fomit-frame-pointer -include /usr/include/errno.h
+
+This will be used to compile .c files.

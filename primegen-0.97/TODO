@@ -1,0 +1,8 @@
+speed up squarefree
+speed up initial jumps in doit
+
+rewrite from scratch
+review code for safe use of 32-bit variables
+review code for safe use of int variables
+
+rewrite critical routines in asm

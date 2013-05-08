@@ -1,0 +1,15 @@
+primegen 0.97
+19990304
+Copyright 1999
+D. J. Bernstein, djb@pobox.com
+http://pobox.com/~djb/primegen.html
+
+primegen is a small, fast library to generate prime numbers in order.
+See BLURB for a more detailed advertisement.
+
+INSTALL says how to set up and test primegen.
+
+The rest of this file is a list of systypes where various versions of
+primegen have been reported to work.
+
+0.97: bsd.os-2.0.1-:i386-:-:pentium-:-

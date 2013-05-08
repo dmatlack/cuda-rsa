@@ -1,0 +1,8 @@
+2048
+
+This is B/32: the number of 32-bit words of space used in the primegen
+inner loop. This should fit into the CPU's level-1 cache.
+
+2048 works well on a Pentium-100.
+3600 works well on a Pentium II-350.
+4004 works well on an UltraSPARC-I/167.

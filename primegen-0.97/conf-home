@@ -1,0 +1,5 @@
+/afs/andrew.cmu.edu/usr7/ajkaufma/Documents/S13/15418/cuda-rsa/primegen-0.97
+
+This is the primegen home directory. Programs will be installed in
+.../bin; the primegen library will be installed in .../lib; man pages
+will be installed in subdirectories of .../man.

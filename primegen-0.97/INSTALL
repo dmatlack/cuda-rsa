@@ -1,0 +1,36 @@
+Like any other piece of software (and information generally), primegen
+comes with NO WARRANTY.
+
+
+Things you have to decide before starting:
+
+* The primegen home directory, normally /usr/local. To change this
+directory, edit conf-home now.
+
+* The compiler to use, normally gcc -O1 -fomit-frame-pointer. To change
+this compiler, edit conf-cc now.
+
+* The number of 32-bit words of space used in the primegen inner loop,
+normally 2048. To change this number, edit conf-words now.
+
+
+How to install:
+
+ 1. Compile the programs and create the formatted man pages:
+       % make
+
+ 2. Install the programs and man pages:
+       # make setup check
+
+
+How to test:
+
+ 3. If you have the md5 program installed:
+       % ./primes 1 100000000 | md5
+    The result should be 4e2b0027288a27e9c99699364877c9db. (There are
+    5761455 primes up to 10^8.)
+
+
+That's it! To report success:
+       % ( echo 'First M. Last'; cat `cat SYSDEPS` ) | mail djb-qst@cr.yp.to
+Replace First M. Last with your name.

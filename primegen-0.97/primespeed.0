@@ -1,0 +1,29 @@
+primespeed(1)                                                    primespeed(1)
+
+
+
+NNAAMMEE
+       primespeed - count prime numbers
+
+SSYYNNTTAAXX
+       pprriimmeessppeeeedd [ _h_i_g_h ]
+
+DDEESSCCRRIIPPTTIIOONN
+       pprriimmeessppeeeedd  counts  the prime numbers between 1 and _h_i_g_h exclusive.  If
+       _h_i_g_h is not supplied, pprriimmeessppeeeedd stops at 1000000000.
+
+       pprriimmeessppeeeedd uses 64-bit arithmetic; _h_i_g_h  can  be  as  large  as  10^15.
+       There are 50847534 primes up to 10^9; 455052511 up to 10^10; 4118054813
+       up to 10^11;  37607912018  up  to  10^12;  346065536839  up  to  10^13;
+       3204941750802 up to 10^14; and 29844570422669 up to 10^15.
+
+       pprriimmeessppeeeedd  prints  the  number of primes and various information about
+       the time it used.  There are faster ways to count primes;  the  purpose
+       of pprriimmeessppeeeedd is to measure the speed of the pprriimmeeggeenn library.
+
+SSEEEE AALLSSOO
+       primegen(3)
+
+
+
+                                                                 primespeed(1)

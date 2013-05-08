@@ -1,0 +1,56 @@
+primegen(3)                                                        primegen(3)
+
+
+
+NNAAMMEE
+       primegen - enumerate small primes
+
+SSYYNNTTAAXX
+       ##iinncclluuddee <<pprriimmeeggeenn..hh>>
+
+       void pprriimmeeggeenn__iinniitt(&_p_g);
+       uint64 pprriimmeeggeenn__nneexxtt(&_p_g);
+       uint64 pprriimmeeggeenn__ppeeeekk(&_p_g);
+       uint64 pprriimmeeggeenn__ccoouunntt(&_p_g,_b_o_u_n_d);
+       void pprriimmeeggeenn__sskkiippttoo(&_p_g,_b_o_u_n_d);
+
+       struct primegen _p_g;
+       uint64 _b_o_u_n_d;
+
+DDEESSCCRRIIPPTTIIOONN
+       The primegen library generates prime numbers in order: 2, 3, 5, 7, etc.
+       It can generate primes as large as 10^15.
+
+       The simplest way to use primegen is to call pprriimmeeggeenn__iinniitt and then call
+       pprriimmeeggeenn__nneexxtt  repeatedly.  The first call to pprriimmeeggeenn__nneexxtt will return
+       2; the next call will return 3; the next call will return 5; and so on.
+
+       At  each moment the next few primes to be returned by pprriimmeeggeenn__nneexxtt are
+       buffered inside _p_g.  pprriimmeeggeenn__iinniitt initializes _p_g with  the  first  few
+       primes,  starting  at  2.   You  must  initialize _p_g with pprriimmeeggeenn__iinniitt
+       before using _p_g with any of the other pprriimmeeggeenn routines.  You may  call
+       pprriimmeeggeenn__iinniitt again to start over at 2.
+
+       pprriimmeeggeenn__nneexxtt  returns  the  next buffered prime and removes that prime
+       from _p_g.  pprriimmeeggeenn__ppeeeekk returns the next buffered prime  but  does  not
+       change _p_g.
+
+       pprriimmeeggeenn__sskkiippttoo  discards  all  primes  up  to  _b_o_u_n_d.  It has the same
+       effect as
+
+            while (primegen_peek(&pg) < bound)
+              primegen_next(&pg);
+
+       pprriimmeeggeenn__ccoouunntt discards all primes up to _b_o_u_n_d and returns  the  number
+       of primes discarded.
+
+       You  can  set  up  several independent generators; all primegen data is
+       stored in _p_g.  Beware, however, that each struct primegen uses quite  a
+       bit of memory.
+
+SSEEEE AALLSSOO
+       primes(1), primespeed(1)
+
+
+
+                                                                   primegen(3)

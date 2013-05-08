@@ -1,0 +1,28 @@
+primes(1)                                                            primes(1)
+
+
+
+NNAAMMEE
+       primes - generate prime numbers
+
+SSYYNNTTAAXX
+       pprriimmeess [ _l_o_w [ _h_i_g_h ] ]
+
+DDEESSCCRRIIPPTTIIOONN
+       pprriimmeess prints the sequence of prime numbers: 2, 3, 5, 7, 11, and so on,
+       one per line.
+
+       If _l_o_w is supplied, pprriimmeess does not print any primes smaller than  _l_o_w.
+
+       If _h_i_g_h is supplied, pprriimmeess does not print any primes larger than _h_i_g_h.
+       If _h_i_g_h is not supplied, pprriimmeess stops at 1000000000; the last prime  is
+       999999937.
+
+       pprriimmeess can handle _h_i_g_h as large as 1000000000000000.
+
+SSEEEE AALLSSOO
+       primegen(3)
+
+
+
+                                                                     primes(1)

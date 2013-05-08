@@ -1,0 +1,91 @@
+.TH primegen 3
+.SH NAME
+primegen \- enumerate small primes
+.SH SYNTAX
+.B #include <primegen.h>
+
+void \fBprimegen_init\fP(&\fIpg\fR);
+.br
+uint64 \fBprimegen_next\fP(&\fIpg\fR);
+.br
+uint64 \fBprimegen_peek\fP(&\fIpg\fR);
+.br
+uint64 \fBprimegen_count\fP(&\fIpg\fR,\fIbound\fR);
+.br
+void \fBprimegen_skipto\fP(&\fIpg\fR,\fIbound\fR);
+
+struct primegen \fIpg\fR;
+.br
+uint64 \fIbound\fR;
+.SH DESCRIPTION
+The primegen library generates prime numbers in order:
+2, 3, 5, 7, etc.
+It can generate primes as large as 10^15.
+
+The simplest way to use primegen
+is to call
+.B primegen_init
+and then call
+.B primegen_next
+repeatedly.
+The first call to
+.B primegen_next
+will return 2;
+the next call will return 3;
+the next call will return 5;
+and so on.
+
+At each moment the next few primes to be returned by
+.B primegen_next
+are buffered inside
+.IR pg .
+.B primegen_init
+initializes
+.I pg
+with the first few primes,
+starting at 2.
+You must initialize
+.I pg
+with
+.B primegen_init
+before using
+.I pg
+with any of the other
+.B primegen
+routines.
+You may call
+.B primegen_init
+again to start over at 2.
+
+.B primegen_next
+returns the next buffered prime
+and removes that prime from
+.IR pg .
+.B primegen_peek
+returns the next buffered prime
+but does not change
+.IR pg .
+
+.B primegen_skipto
+discards all primes up to
+.IR bound .
+It has the same effect as
+
+.EX
+     while (primegen_peek(&pg) < bound)
+       primegen_next(&pg);
+.EE
+
+.B primegen_count
+discards all primes up to
+.IR bound
+and returns the number of primes discarded.
+
+You can set up several independent generators;
+all primegen data is stored in
+.IR pg .
+Beware, however, that each struct primegen
+uses quite a bit of memory.
+.SH "SEE ALSO"
+primes(1),
+primespeed(1)

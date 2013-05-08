@@ -1,0 +1,24 @@
+primegaps(1)                                                      primegaps(1)
+
+
+
+NNAAMMEE
+       primegaps - print large prime gaps
+
+SSYYNNTTAAXX
+       pprriimmeeggaappss
+
+DDEESSCCRRIIPPTTIIOONN
+       pprriimmeeggaappss  searches for large gaps in the sequence of primes.  The gaps
+       between 2, 3, 5, 7, 11, and so on are 1, 2, 2, 4, and so on.
+
+       When pprriimmeeggaappss sees a new largest gap _n, from _p--_n to  _p,  it  prints  a
+       line  _p  _n  _r where _r is the approximate ratio between the log of _n and
+       the log of the log of _p.
+
+SSEEEE AALLSSOO
+       primes(1), primegen(3)
+
+
+
+                                                                  primegaps(1)

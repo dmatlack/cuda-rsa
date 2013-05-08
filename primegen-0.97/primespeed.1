@@ -1,0 +1,41 @@
+.TH primespeed 1
+.SH NAME
+primespeed \- count prime numbers
+.SH SYNTAX
+.B primespeed
+[ \fIhigh\fP ]
+.SH DESCRIPTION
+.B primespeed
+counts the prime numbers between 1 and
+.I high
+exclusive.
+If
+.I high
+is not supplied,
+.B primespeed
+stops at 1000000000.
+
+.B primespeed
+uses 64-bit arithmetic;
+.I high
+can be as large as 10^15.
+There are
+50847534 primes up to 10^9;
+455052511 up to 10^10;
+4118054813 up to 10^11;
+37607912018 up to 10^12;
+346065536839 up to 10^13;
+3204941750802 up to 10^14; and
+29844570422669 up to 10^15.
+
+.B primespeed
+prints the number of primes
+and various information about the time it used.
+There are faster ways to count primes;
+the purpose of
+.B primespeed
+is to measure the speed of the
+.B primegen
+library.
+.SH "SEE ALSO"
+primegen(3)

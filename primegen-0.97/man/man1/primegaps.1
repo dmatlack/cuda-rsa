@@ -1,0 +1,30 @@
+.TH primegaps 1
+.SH NAME
+primegaps \- print large prime gaps
+.SH SYNTAX
+.B primegaps
+.SH DESCRIPTION
+.B primegaps
+searches for large gaps in the sequence of primes.
+The gaps between 2, 3, 5, 7, 11, and so on
+are 1, 2, 2, 4, and so on.
+
+When
+.B primegaps
+sees a new largest gap
+.IR n ,
+from
+.I p\fB-\fIn
+to
+.IR p ,
+it prints a line
+.I p n r
+where
+.I r
+is the approximate ratio between the log of
+.I n
+and the log of the log of
+.IR p .
+.SH "SEE ALSO"
+primes(1),
+primegen(3)
