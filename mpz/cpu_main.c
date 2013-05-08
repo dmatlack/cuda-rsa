@@ -288,6 +288,35 @@ void test_powmod(const char *base_str, const char *exp_str, const char *mod_str,
   }
 }
 
+void test_gcd(const char * op1_str, const char *op2_str,
+              const char *correct_str) {
+  char got_str[1024];
+
+  mpz_t gcd;
+  mpz_t op1;
+  mpz_t op2;
+
+  mpz_init(&gcd);
+  mpz_init(&op1);
+  mpz_init(&op2);
+
+  mpz_set_str(&op1, op1_str);
+  mpz_set_str(&op2, op2_str);
+
+  mpz_gcd(&gcd, &op1, &op2);
+
+  mpz_get_str(&gcd, got_str, 1024);
+
+  if (!strcmp(correct_str, got_str)) {
+    printf(".");
+  }
+  else {
+    printf("\nFAIL: GCD(%s, %s) = [Expected: %s, Got: %s]\n", 
+           op1_str, op2_str, correct_str, got_str);
+  }
+}
+
+
 int main(int argc, char **argv) {
   struct timeval start, end;
   unsigned long long elapsed_us;
@@ -433,6 +462,10 @@ int main(int argc, char **argv) {
   test_powmod("345636", "1", "35264", "28260");
   test_powmod("345636", "2", "35264", "3792");
   test_powmod("345636", "34", "35264", "18304");
+
+  test_gcd("2918", "288", "2");
+  test_gcd("288", "2918", "2");
+  test_gcd("173982", "1009212", "6");
 
   gettimeofday(&end, NULL);
 

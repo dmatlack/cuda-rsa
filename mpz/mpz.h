@@ -485,6 +485,42 @@ __device__ __host__ void mpz_div(mpz_t *q, mpz_t *r, mpz_t *n, mpz_t *d) {
 }
 
 /**
+ * @brief Compute the GCD of op1 and op2.
+ *
+ * Euclidean Algorithm:
+ *
+ *    while (b != 0) {
+ *      t := b
+ *      b := a % b
+ *      a := t
+ *    }
+ *    gcd = a
+ */
+__device__ __inline__ void mpz_gcd(mpz_t *gcd, mpz_t *op1, mpz_t *op2) {
+  mpz_t a;
+  mpz_t b;
+  mpz_t mod;
+  mpz_t quo;
+  int compare = mpz_compare(op1, op2);
+
+  mpz_init(&a);
+  mpz_init(&b);
+  mpz_init(&mod);
+  mpz_init(&quo);
+
+  mpz_set(&a, (compare > 0) ? op1 : op2);
+  mpz_set(&b, (compare > 0) ? op2 : op1);
+
+  while (!digits_is_zero(b.digits, b.capacity)) {
+    mpz_div(&quo, &mod, &a, &b);
+    mpz_set(&a, &b);
+    mpz_set(&b, &mod);
+  }
+
+  mpz_set(gcd, &a);
+}
+
+/**
  * Using exponentiation by squaring algorithm: 
  * 
  *  function modular_pow(base, exponent, modulus)
