@@ -32,7 +32,7 @@ typedef struct {
              (__mpz)->capacity, (__capacity));                          \
       exit(4);                                                          \
     }                                                                   \
-  } while (0) 
+  } while (0)
 #else
 #define CHECK_MEM(__mpz, __capacity)
 #endif
@@ -58,19 +58,19 @@ typedef struct {
 #define CHECK_SIGN(__mpz)
 #endif
 
-inline __device__ __host__ int mpz_is_negative(mpz_t *mpz) {
+__device__ __host__ inline int mpz_is_negative(mpz_t *mpz) {
   if (digits_is_zero(mpz->digits, mpz->capacity)) return false;
   return (mpz->sign == -1);
 }
 
-inline __device__ __host__ void mpz_negate(mpz_t *mpz) {
+__device__ __host__ inline void mpz_negate(mpz_t *mpz) {
   mpz->sign *= -1;
 }
 
 /**
  * @brief Initialize an mpz struct to 0.
  */
-__device__ __host__ void mpz_init(mpz_t *mpz) {
+__device__ __host__ inline void mpz_init(mpz_t *mpz) {
   mpz->capacity = DIGITS_CAPACITY;
   digits_set_zero(mpz->digits);
   mpz->sign = 0;
@@ -79,7 +79,7 @@ __device__ __host__ void mpz_init(mpz_t *mpz) {
 /**
  * @brief Assign an mpz_t struct to the value of another mpz_t struct.
  */
-__device__ __host__ void mpz_set(mpz_t *to, mpz_t *from) {
+__device__ __host__ inline void mpz_set(mpz_t *to, mpz_t *from) {
   unsigned i;
 
   for (i = 0; i < to->capacity; i++) {
@@ -93,15 +93,23 @@ __device__ __host__ void mpz_set(mpz_t *to, mpz_t *from) {
 /**
  * @brief Set the mpz integer to the provided integer.
  */
-__device__ __host__ void mpz_set_i(mpz_t *mpz, int z) {
+__device__ __host__ inline void mpz_set_i(mpz_t *mpz, int z) {
   mpz->sign = (z == 0) ? 0 : ((z > 0) ? 1: -1);
-  digits_set_ui(mpz->digits, abs(z));
+  digits_set_lui(mpz->digits, abs(z));
+}
+
+/**
+ * @brief Set the mpz integer to the provided integer.
+ */
+__device__ __host__ inline void mpz_set_lui(mpz_t *mpz, unsigned long z) {
+  mpz->sign = (z == 0) ? 0 : ((z > 0) ? 1: -1);
+  digits_set_lui(mpz->digits, z);
 }
 
 /**
  * @brief Set the mpz integer based on the provided string.
  */
-__device__ __host__ void mpz_set_str(mpz_t *mpz, const char *str) {
+__device__ __host__ inline void mpz_set_str(mpz_t *mpz, const char *str) {
   unsigned num_digits;
   unsigned i;
   int is_zero;
@@ -137,7 +145,7 @@ __device__ __host__ void mpz_set_str(mpz_t *mpz, const char *str) {
 /**
  * @breif Destroy the mpz_t struct.
  */
-__device__ __host__ void mpz_destroy(mpz_t *mpz) {
+__device__ __host__ inline void mpz_destroy(mpz_t *mpz) {
   mpz->sign = 0;
 }
 
@@ -145,11 +153,11 @@ __device__ __host__ void mpz_destroy(mpz_t *mpz) {
  * @brief Add two multiple precision integers.
  *
  *      dst := op1 + op2
- * 
+ *
  * @warning It is assumed that all mpz_t parameters have been initialized.
  * @warning Assumes dst != op1 != op2
  */
-__device__ __host__ void mpz_add(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
+__device__ __host__ inline void mpz_add(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
   unsigned op1_digit_count = digits_count(op1->digits);
   unsigned op2_digit_count = digits_count(op2->digits);
 
@@ -158,7 +166,7 @@ __device__ __host__ void mpz_add(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
   unsigned capacity = max(op1_digit_count, op2_digit_count) + 1;
 
   /* Make sure all of the mpz structs have enough memory to hold all of
-   * the digits. We will be doing 10's complement so everyone needs to 
+   * the digits. We will be doing 10's complement so everyone needs to
    * have enough digits. */
   CHECK_MEM(dst, capacity);
   CHECK_MEM(op1, capacity);
@@ -168,7 +176,7 @@ __device__ __host__ void mpz_add(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
 
   /* If both are negative, treate them as positive and negate the result */
   if (mpz_is_negative(op1) && mpz_is_negative(op2)) {
-    digits_add(dst->digits, dst->capacity, 
+    digits_add(dst->digits, dst->capacity,
                op1->digits, op1->capacity,
                op2->digits, op2->capacity);
     dst->sign = -1;
@@ -181,10 +189,10 @@ __device__ __host__ void mpz_add(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
     if (mpz_is_negative(op1)) digits_complement(op1->digits, op1->capacity);
     if (mpz_is_negative(op2)) digits_complement(op2->digits, op2->capacity);
 
-    carry_out = digits_add(dst->digits, dst->capacity, 
+    carry_out = digits_add(dst->digits, dst->capacity,
                            op1->digits, op1->capacity,
                            op2->digits, op2->capacity);
-    
+
     /* If there is no carryout, the result is negative */
     if (carry_out == 0 && (mpz_is_negative(op1) || mpz_is_negative(op2))) {
       digits_complement(dst->digits, dst->capacity);
@@ -211,7 +219,7 @@ __device__ __host__ void mpz_add(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
  * @warning Assumes that all mpz_t parameters have been initialized.
  * @warning Assumes dst != op1 != op2
  */
-__device__ __host__ void mpz_sub(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
+__device__ __host__ inline void mpz_sub(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
   mpz_negate(op2);
   mpz_add(dst, op1, op2);
   mpz_negate(op2);
@@ -223,21 +231,21 @@ __device__ __host__ void mpz_sub(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
  * @warning Assumes that all mpz_t parameters have been initialized.
  * @warning Assumes dst != op1 != op2
  */
-__device__ __host__ void mpz_mult(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
+__device__ __host__ inline void mpz_mult(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
   unsigned op1_digit_count = digits_count(op1->digits);
   unsigned op2_digit_count = digits_count(op2->digits);
   unsigned capacity = max(op1_digit_count, op2_digit_count);
 
   digits_set_zero(dst->digits);
 
-  /* In multiplication, if the operand with the most digits has D digits, 
+  /* In multiplication, if the operand with the most digits has D digits,
    * then the result of the addition will have at most 2D digits. */
   CHECK_MEM(dst, 2*capacity);
   CHECK_MEM(op1,   capacity);
   CHECK_MEM(op2,   capacity);
 
   /* We pass in capacity as the number of digits rather that the actual
-   * number of digits in each mpz_t struct. This is done because the 
+   * number of digits in each mpz_t struct. This is done because the
    * multiplication code has some assumptions and optimizations (e.g.
    * op1 and op2 to have the same number of digits) */
   digits_mult(dst->digits, op1->digits, op2->digits, capacity);
@@ -250,8 +258,8 @@ __device__ __host__ void mpz_mult(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
   CHECK_SIGN(dst);
 }
 
-/** 
- * @return 
+/**
+ * @return
  *      < 0  if a < b
  *      = 0  if a = b
  *      > 0  if a > b
@@ -262,13 +270,13 @@ __device__ __host__ void mpz_mult(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
 #define MPZ_LESS    -1
 #define MPZ_GREATER  1
 #define MPZ_EQUAL    0
-__device__ __host__ int mpz_compare(mpz_t *a, mpz_t *b) {
+__device__ __host__ inline int mpz_compare(mpz_t *a, mpz_t *b) {
   int cmp;
   int negative;
 
   if (a->sign < b->sign) return MPZ_LESS;
   if (a->sign > b->sign) return MPZ_GREATER;
- 
+
   /* At this point we know they have the same sign */
   cmp = digits_compare(a->digits, a->capacity, b->digits, b->capacity);
   negative = mpz_is_negative(a);
@@ -284,23 +292,23 @@ __device__ __host__ int mpz_compare(mpz_t *a, mpz_t *b) {
 }
 
 /** @brief Return true if a == b */
-__device__ __host__ int mpz_equal(mpz_t *a, mpz_t *b) {
+__device__ __host__ inline int mpz_equal(mpz_t *a, mpz_t *b) {
   return (mpz_compare(a, b) == 0);
 }
 /** @brief Return true if a < b */
-__device__ __host__ int mpz_lt(mpz_t *a, mpz_t *b) {
+__device__ __host__ inline int mpz_lt(mpz_t *a, mpz_t *b) {
   return (mpz_compare(a, b) < 0);
 }
 /** @brief Return true if a <= b */
-__device__ __host__ int mpz_lte(mpz_t *a, mpz_t *b) {
+__device__ __host__ inline int mpz_lte(mpz_t *a, mpz_t *b) {
   return (mpz_compare(a, b) <= 0);
 }
 /** @brief Return true if a > b */
-__device__ __host__ int mpz_gt(mpz_t *a, mpz_t *b) {
+__device__ __host__ inline int mpz_gt(mpz_t *a, mpz_t *b) {
   return (mpz_compare(a, b) > 0);
 }
 /** @brief Return true if a >= b */
-__device__ __host__ int mpz_gte(mpz_t *a, mpz_t *b) {
+__device__ __host__ inline int mpz_gte(mpz_t *a, mpz_t *b) {
   return (mpz_compare(a, b) >= 0);
 }
 
@@ -309,10 +317,10 @@ __device__ __host__ int mpz_gte(mpz_t *a, mpz_t *b) {
  * @breif Return the string representation of the integer represented by the
  * mpz_t struct.
  *
- * @warning If buf is NULL, the string is dynamically allocated and must 
+ * @warning If buf is NULL, the string is dynamically allocated and must
  * therefore be freed by the user.
  */
-__device__ __host__ char* mpz_get_str(mpz_t *mpz, char *buf, unsigned bufsize) {
+__device__ __host__ inline char* mpz_get_str(mpz_t *mpz, char *buf, unsigned bufsize) {
   char *str;
   int print_zeroes = 0; // don't print leading 0s
   int i, str_index = 0;
@@ -356,7 +364,7 @@ __device__ __host__ char* mpz_get_str(mpz_t *mpz, char *buf, unsigned bufsize) {
   return str;
 }
 
-__device__ __host__ void mpz_print(mpz_t *mpz) {
+__device__ __host__ inline void mpz_print(mpz_t *mpz) {
 #ifndef __CUDACC__
   char str[1024];
 
@@ -366,7 +374,7 @@ __device__ __host__ void mpz_print(mpz_t *mpz) {
 }
 
 
-__device__ __host__ char* mpz_get_binary_str(mpz_t *mpz, char *buf, 
+__device__ __host__ inline char* mpz_get_binary_str(mpz_t *mpz, char *buf,
                                              unsigned bufsize) {
   char *str;
   int print_zeroes = 0; // don't print leading 0s
@@ -417,11 +425,11 @@ __device__ __host__ char* mpz_get_binary_str(mpz_t *mpz, char *buf,
 /**
  * @brief Compute the quotient and remainder of n / d.
  *
- * Credit for the algorithm to compute the quotient goes to Steven S. Skiena. 
+ * Credit for the algorithm to compute the quotient goes to Steven S. Skiena.
  * Original source code can be found here:
  *        http://www.cs.sunysb.edu/~skiena/392/programs/bignum.c
  */
-__device__ __host__ void mpz_div(mpz_t *q, mpz_t *r, mpz_t *n, mpz_t *d) {
+__device__ __host__ inline void mpz_div(mpz_t *q, mpz_t *r, mpz_t *n, mpz_t *d) {
   unsigned n_digit_count = digits_count(n->digits);
   mpz_t row;
   mpz_t tmp;
@@ -521,8 +529,8 @@ __device__ __inline__ void mpz_gcd(mpz_t *gcd, mpz_t *op1, mpz_t *op2) {
 }
 
 /**
- * Using exponentiation by squaring algorithm: 
- * 
+ * Using exponentiation by squaring algorithm:
+ *
  *  function modular_pow(base, exponent, modulus)
  *    result := 1
  *    while exponent > 0
@@ -532,14 +540,14 @@ __device__ __inline__ void mpz_gcd(mpz_t *gcd, mpz_t *op1, mpz_t *op2) {
  *      base = (base * base) mod modulus
  *    return result
  */
-__device__ __inline__ void mpz_powmod(mpz_t *result, mpz_t *base, 
+__device__ __inline__ void mpz_powmod(mpz_t *result, mpz_t *base,
                                       mpz_t *exp, mpz_t *mod) {
   digit_t binary_exp[BINARY_CAPACITY];
   unsigned iteration;
   mpz_t tmp;
   mpz_t ignore;
   mpz_t _base;
-  
+
   // result = 1
   mpz_set_i(result, 1);
 

@@ -26,3 +26,4 @@ inline int abs(int a) { return (a < 0) ? -a : a; }
 #endif /* __CUDACC__ */
 
 #endif /* __418_COMPILE_H__ */
+

@@ -18,11 +18,11 @@
 
 typedef unsigned char digit_t;
 
-__device__ __host__ char digit_tochar(digit_t d) {
+__device__ __host__ inline char digit_tochar(digit_t d) {
   return '0' + d;
 }
 
-__device__ __host__ digit_t digit_fromchar(char c) {
+__device__ __host__ inline digit_t digit_fromchar(char c) {
   if (c < '0' || c > '9') {
     c = '0';
   }
@@ -34,7 +34,7 @@ __device__ __host__ digit_t digit_fromchar(char c) {
  * @brief Return true (non-zero) if all of the digits in the digits array
  * are zero (and thus the corresponding number is zero.
  */
-__device__ __host__ int digits_is_zero(digit_t *digits, 
+__device__ __host__ inline int digits_is_zero(digit_t *digits,
                                        unsigned num_digits) {
   unsigned i;
 
@@ -44,13 +44,13 @@ __device__ __host__ int digits_is_zero(digit_t *digits,
   return 1;
 }
 
-__device__ __host__ void digits_set_zero(digit_t digits[DIGITS_CAPACITY]) {
+__device__ __host__ inline void digits_set_zero(digit_t digits[DIGITS_CAPACITY]) {
   unsigned i;
   for (i = 0; i < DIGITS_CAPACITY; i++) digits[i] = 0;
 }
 
-__device__ __host__ void digits_set_ui(digit_t digits[DIGITS_CAPACITY],
-                                       unsigned z) {
+__device__ __host__ inline void digits_set_lui(digit_t digits[DIGITS_CAPACITY],
+                                        unsigned long z) {
   unsigned i;
 
   i = 0;
@@ -58,7 +58,7 @@ __device__ __host__ void digits_set_ui(digit_t digits[DIGITS_CAPACITY],
     digits[i] = z % 10;
     z /= 10;
   }
-  
+
 }
 
 /**
@@ -70,7 +70,7 @@ __device__ __host__ void digits_set_ui(digit_t digits[DIGITS_CAPACITY],
  * digits = { 0, 1, 5, 0, ..., 0 } represents 510 which is 3 digits
  *
  */
-__device__ __host__ unsigned digits_count(digit_t digits[DIGITS_CAPACITY]) {
+__device__ __host__ inline unsigned digits_count(digit_t digits[DIGITS_CAPACITY]) {
   int is_leading_zero = true;
   unsigned count = 0;
   int i;
@@ -100,7 +100,7 @@ __device__ __host__ unsigned digits_count(digit_t digits[DIGITS_CAPACITY]) {
  * @warning The return value does NOT give any indication about the relative
  * distance between the two numbers. It ONLY indicates <, >, or =.
  */
-__device__ __host__ int digits_compare(digit_t *digits1, unsigned num_d1,
+__device__ __host__ inline int digits_compare(digit_t *digits1, unsigned num_d1,
                                        digit_t *digits2, unsigned num_d2) {
   unsigned max_digits = (num_d1 > num_d2) ? num_d1 : num_d2;
   unsigned i;
@@ -125,7 +125,7 @@ __device__ __host__ int digits_compare(digit_t *digits1, unsigned num_d1,
  * @param result Passed by reference back to the caller
  * @param carry  Passed by reference back to the caller
  */
-inline __device__ __host__ void clip(unsigned long long value,
+__device__ __host__ inline void clip(unsigned long long value,
                                      digit_t* result, digit_t *carry) {
   *carry  = value / DIGIT_BASE;
   *result = value % DIGIT_BASE;
@@ -135,13 +135,13 @@ inline __device__ __host__ void clip(unsigned long long value,
  * @brief Find the result of a + b + carry. Store the resulting carry of this
  * operation back in the carry pointer.
  */
-__device__ __host__ digit_t add(digit_t a, digit_t b, 
+__device__ __host__ inline digit_t add(digit_t a, digit_t b,
                                 digit_t *carry) {
   unsigned long long tmp = a + b + *carry;
   digit_t result;
 
   clip(tmp, &result, carry);
-  
+
   return result;
 }
 
@@ -154,12 +154,12 @@ __device__ __host__ digit_t add(digit_t a, digit_t b,
  *
  * @return The product (as well as the carry out).
  */
-__device__ __host__ digit_t mult(digit_t a, digit_t b, digit_t *carry) {
+__device__ __host__ inline digit_t mult(digit_t a, digit_t b, digit_t *carry) {
   unsigned long long tmp = a*b + *carry;
   digit_t result;
 
   clip(tmp, &result, carry);
-  
+
   return result;
 }
 
@@ -169,7 +169,7 @@ __device__ __host__ digit_t mult(digit_t a, digit_t b, digit_t *carry) {
  *
  * @return The carry out.
  */
-__device__ __host__ digit_t digits_add_across(digit_t *digits, 
+__device__ __host__ inline digit_t digits_add_across(digit_t *digits,
                                               unsigned num_digits, digit_t d) {
   digit_t carry = d;
   unsigned i = 0;
@@ -183,7 +183,7 @@ __device__ __host__ digit_t digits_add_across(digit_t *digits,
 }
 
 /** @breif Copy from into to. */
-__device__ __host__ void digits_copy(digit_t to[DIGITS_CAPACITY],
+__device__ __host__ inline void digits_copy(digit_t to[DIGITS_CAPACITY],
                                      digit_t from[DIGITS_CAPACITY]) {
   unsigned i;
 
@@ -201,7 +201,7 @@ __device__ __host__ void digits_copy(digit_t to[DIGITS_CAPACITY],
  * 239487 -> 760518 + 1 ->  | 760519 |
  *                          +--------+
  */
-__device__ __host__ void digits_complement(digit_t *digits, unsigned num_digits) {
+__device__ __host__ inline void digits_complement(digit_t *digits, unsigned num_digits) {
   unsigned i;
 
   // Complement each digit by subtracting it from BASE-1
@@ -219,7 +219,7 @@ __device__ __host__ void digits_complement(digit_t *digits, unsigned num_digits)
  *
  * @return The carry-out of the addition (0 if there is none).
  */
-__device__ __host__ digit_t digits_add(digit_t *sum, unsigned sum_num_digits, 
+__device__ __host__ inline digit_t digits_add(digit_t *sum, unsigned sum_num_digits,
                                        digit_t *op1, unsigned op1_num_digits,
                                        digit_t *op2, unsigned op2_num_digits) {
   digit_t carry = 0;
@@ -244,12 +244,12 @@ __device__ __host__ digit_t digits_add(digit_t *sum, unsigned sum_num_digits,
  *
  * @return The carry out.
  */
-__device__ __host__ void long_multiplication(digit_t *product, 
-                                             digit_t *op1, 
-                                             digit_t *op2, 
+__device__ __host__ inline void long_multiplication(digit_t *product,
+                                             digit_t *op1,
+                                             digit_t *op2,
                                              unsigned num_digits) {
   unsigned i, j;
-  
+
   for (i = 0; i < 2*num_digits; i++) {
     product[i] = 0;
   }
@@ -269,7 +269,7 @@ __device__ __host__ void long_multiplication(digit_t *product,
 
 }
 
-__device__ __host__ void karatsuba(void) { 
+__device__ __host__ inline void karatsuba(void) {
   //TODO someway somehow someday
 }
 
@@ -279,17 +279,17 @@ __device__ __host__ void karatsuba(void) {
  * @warning It is assumed that op1 and op2 contain num_digits each
  * and product has room for at least 2*num_digits.
  */
-__device__ __host__ void digits_mult(digit_t *product, 
-                                     digit_t *op1, 
-                                     digit_t *op2, 
+__device__ __host__ inline void digits_mult(digit_t *product,
+                                     digit_t *op1,
+                                     digit_t *op2,
                                      unsigned num_digits) {
   long_multiplication(product, op1, op2, num_digits);
 }
 
-__device__ __host__ void digits_rshift(digit_t *digits, unsigned capacity,
+__device__ __host__ inline void digits_rshift(digit_t *digits, unsigned capacity,
                                        unsigned shift_amount) {
   int i;
-  
+
   for (i = capacity - shift_amount - 1; i >= 0; i--) {
     digits[i + shift_amount] = digits[i];
   }
@@ -299,7 +299,7 @@ __device__ __host__ void digits_rshift(digit_t *digits, unsigned capacity,
 }
 
 /** @brief Compute a /= 2 */
-__device__ __host__ void digits_diveq_by_2(digit_t a[DIGITS_CAPACITY]) {
+__device__ __host__ inline void digits_diveq_by_2(digit_t a[DIGITS_CAPACITY]) {
   digit_t additive = 0, next_additive = 0;
   int i;
 
@@ -314,7 +314,7 @@ __device__ __host__ void digits_diveq_by_2(digit_t a[DIGITS_CAPACITY]) {
 }
 
 /** @brief Convert the array of digits to an array of bits */
-__device__ __host__ void digits_to_binary(digit_t bits[BINARY_CAPACITY],
+__device__ __host__ inline void digits_to_binary(digit_t bits[BINARY_CAPACITY],
                                           digit_t digits[DIGITS_CAPACITY]) {
   digit_t tmp[DIGITS_CAPACITY];
   unsigned i;
