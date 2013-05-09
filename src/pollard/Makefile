@@ -7,11 +7,13 @@
 CXX = g++ -m64
 CXXFLAGS = -g -DDEBUG -Wall -Wextra \
 	-I/usr/local/cuda/include \
-	-I../primegen-0.97 \
+	-I../mpz \
 	-I/usr/local/cuda/CUDALibraries/common/inc
 
 NVCC = nvcc
-NVCCFLAGS = -g -G -m64 -arch compute_20
+NVCCFLAGS = -g -G -m64 -arch compute_20 \
+	-I../primegen-0.97 \
+	-I../mpz
 
 LIBS += cudart primegen
 LDLIBS = $(addprefix -l, $(LIBS))
@@ -21,7 +23,7 @@ LDFLAGS = -L/usr/local/cuda/lib64/ -L../primegen-0.97/lib
 # Files we don't compile with directly, but we want Make to know that we
 # depend on them
 ###
-OTHER_FILES =
+OTHER_FILES = kernel.h
 
 default: dirs gpu
 
