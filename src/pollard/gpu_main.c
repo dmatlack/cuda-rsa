@@ -22,6 +22,8 @@
  **************************************************************************/
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
+#include <sys/time.h>
 
 #include "kernel.h"
 
@@ -34,20 +36,29 @@ int main(int argc, char *argv[]) {
   mpz_t factor;
   mpz_init(&factor);
 
+  struct timeval start, end;
+
   unsigned num_to_factor;
-   for (num_to_factor = 1; (int) num_to_factor < argc; num_to_factor ++) {
+  for (num_to_factor = 1; (int) num_to_factor < argc; num_to_factor ++) {
 
     UL n = (UL) atol(argv[num_to_factor]);
     printf("%lu: ", n);
 
+    gettimeofday(&start, NULL);
+
     if (0 == factorize(n, d_table, &factor)) {
+      gettimeofday(&end, NULL);
+      long elapsed_us = (end.tv_sec * 1000 * 1000 + end.tv_usec) -
+        (start.tv_sec * 1000 * 1000 + start.tv_usec);
+
       char *factor_str = mpz_get_str(&factor, NULL, 0);
-      printf("%s\n", factor_str);
+      printf("%s (in %ld us)\n", factor_str, elapsed_us);
       free(factor_str);
     }
     else {
       printf("unable to find factor\n");
     }
+
   }
 
   return 0;

@@ -3,9 +3,15 @@
 #include "kernel.h"
 #include "primegen.h"
 
+#define NUM_BLOCKS 1
+#define THREADS_PER_BLOCK 1
+
+#define B_START 2
+#define TABLE_SIZE (200 * 1000 * 1000)
+
 __global__
 void parallel_factorize_kernel(UL N, unsigned B, unsigned *primes,
-                               mpz_t *results) {
+                               bool *finished, mpz_t *results) {
   mpz_t n, a, d, p, e, b, tmp, tmp_2, MPZ_ONE;
 
   unsigned tid = blockDim.x * blockIdx.x + threadIdx.x;
@@ -34,25 +40,33 @@ void parallel_factorize_kernel(UL N, unsigned B, unsigned *primes,
   for (p_i = tid; primes[p_i] < B; p_i += threads) {
     mpz_set_lui(&p, (UL) primes[p_i]);
     // TODO: replace MPZ_ONE with logB / logp
-    mpz_powmod(&tmp, &p, &MPZ_ONE, &n); // tmp = (p ** 1) % n
-    mpz_mult(&tmp_2, &tmp, &e);         // tmp_2 = tmp * e
-    mpz_div(&tmp, &e, &tmp_2, &n);      // e = tmp_2 % n
+    mpz_set_lui(&tmp_2, (UL) (log((double) B) / log((double) primes[p_i])));
+                                      // tmp_2 = floor(log b / log p)
+    mpz_powmod(&tmp, &p, &tmp_2, &n); // tmp = (p ** tmp_2) % n
+    mpz_mult(&tmp_2, &tmp, &e);       // tmp_2 = tmp * e
+    mpz_set(&e, &tmp_2);              // e = tmp_2
   }
 
-  char *e_str = mpz_get_str(&e, NULL, 0);
-  printf("\tUsing e = %s\n", e_str);
-  free(e_str);
+  if (mpz_equal(&e, &MPZ_ONE)) return;
+
+  // char *e_str = mpz_get_str(&e, NULL, 0);
+  // printf("\tUsing e = %s\n", e_str);
+  // free(e_str);
 
   // try a variety of a values
   mpz_set_lui(&a, 2 + tid);
   for (it = 0; it < max_it; it ++) {
-    char *a_str = mpz_get_str(&a, NULL, 0);
-    printf("\t\tUsing a = %s\n", a_str);
-    free(a_str);
+    if (*finished) {
+      return;
+    }
+    // char *a_str = mpz_get_str(&a, NULL, 0);
+    // printf("\t\tUsing a = %s\n", a_str);
+    // free(a_str);
     // check for a freebie
     mpz_gcd(&d, &a, &n);
     if (mpz_lt(&MPZ_ONE, &d)) {
       results[tid] = d;
+      *finished = true;
       return;
     }
 
@@ -63,6 +77,7 @@ void parallel_factorize_kernel(UL N, unsigned B, unsigned *primes,
     // success!
     if (mpz_lt(&MPZ_ONE, &d) && mpz_lt(&d, &n)) {
       results[tid] = d;
+      *finished = true;
       return;
     }
 
@@ -75,87 +90,9 @@ void parallel_factorize_kernel(UL N, unsigned B, unsigned *primes,
   // couldn't find anything... :(
 }
 
-__global__
-void serial_factorize_kernel(UL N, unsigned *primes, mpz_t *results) {
-  mpz_t n, a, d, p, e, b, tmp, tmp_2, MPZ_ONE;
-
-  unsigned tid = blockDim.x * blockIdx.x + threadIdx.x;
-
-  mpz_init(&n);
-  mpz_init(&a);
-  mpz_init(&d);
-  mpz_init(&p);
-  mpz_init(&e);
-  mpz_init(&b);
-  mpz_init(&tmp);
-  mpz_init(&tmp_2);
-
-  mpz_init(&MPZ_ONE);
-  mpz_set_i(&MPZ_ONE, 1);
-
-  mpz_set_lui(&n, N);
-
-  unsigned it;
-  unsigned max_it = 80;
-
-  unsigned B;
-  unsigned max_B = ((N < 1000 * 1000) ? N : 1000 * 1000);
-  unsigned p_i = 0;
-  mpz_set_lui(&e, (UL) 1);
-  // we'll abort at about 1 million
-  for (B = 2; B <= max_B; B *= 2) {
-    // get a new e
-    for (; primes[p_i] <= B; p_i ++) {
-      mpz_set_lui(&p, (UL) primes[p_i]);
-      // TODO: replace MPZ_ONE with logB / logp
-      mpz_powmod(&tmp, &p, &MPZ_ONE, &n); // tmp = (p ** 1) % n
-      mpz_mult(&tmp_2, &tmp, &e);         // tmp_2 = tmp * e
-      mpz_div(&tmp, &e, &tmp_2, &n);      // e = tmp_2 % n
-    }
-
-    char *e_str = mpz_get_str(&e, NULL, 0);
-    printf("Using B = %u (e = %s)\n", B, e_str);
-    free(e_str);
-
-    // try a variety of a values
-    // right now, just start at two and increment
-    mpz_set_lui(&a, 2);
-    for (it = 0; it < max_it; it ++) {
-      char *a_str = mpz_get_str(&a, NULL, 0);
-      printf("\tUsing a = %s\n", a_str);
-      free(a_str);
-      // check for a freebie
-      mpz_gcd(&d, &a, &n);
-      if (mpz_lt(&MPZ_ONE, &d)) {
-        results[tid] = d;
-        return;
-      }
-
-      mpz_powmod(&b, &a, &e, &n);  // b = (a ** e) % n
-      mpz_sub(&tmp, &b, &MPZ_ONE); // tmp = b - 1
-      mpz_gcd(&d, &tmp, &n);       // d = gcd(tmp, n)
-
-      // success!
-      if (mpz_lt(&MPZ_ONE, &d) && mpz_lt(&d, &n)) {
-        results[tid] = d;
-        return;
-      }
-
-      // if gcd(a ** e - 1, n) == 1, get a new B
-      if (mpz_equal(&d, &MPZ_ONE)) {
-        break;
-      }
-      // otherwise gcd(a ** e - 1, n) == n - 1 --> get a new a
-      mpz_add(&tmp, &a, &MPZ_ONE); // tmp = a + 1
-      mpz_set(&a, &tmp);           // a = tmp
-    }
-  }
-  // couldn't find anything... :(
-}
-
 int factorize(UL n, unsigned *primes, mpz_t *factor) {
-  unsigned blocks = 1024;
-  unsigned threads_per_block = 64;
+  unsigned blocks = NUM_BLOCKS;
+  unsigned threads_per_block = THREADS_PER_BLOCK;
   unsigned threads = blocks * threads_per_block;
 
   size_t results_bytes = threads * sizeof(mpz_t);
@@ -167,11 +104,17 @@ int factorize(UL n, unsigned *primes, mpz_t *factor) {
     return -1;
   }
 
+  // create global boolean used to exit on completion
+  bool *d_finished;
+  cudaMalloc((void **) &d_finished, sizeof(bool));
+  cudaMemset(d_finished, false, sizeof(bool));
+
   unsigned B;
-  unsigned max_B = ((n < 1000 * 1000) ? n : 1000 * 1000);
-  for (B = 2; B < max_B; B *= 2) {
+  unsigned max_B = ((n < TABLE_SIZE) ? n : TABLE_SIZE);
+  for (B = B_START; B < max_B; B *= 2) {
     printf("Using B = %u\n", B);
-    parallel_factorize_kernel<<<blocks, threads_per_block>>>(n, B, primes, d_results);
+    parallel_factorize_kernel<<<blocks, threads_per_block>>>
+      (n, B, primes, d_finished, d_results);
 
     mpz_t *tmp_results = (mpz_t *) malloc(results_bytes);
     if (NULL == tmp_results) {
@@ -197,6 +140,10 @@ int factorize(UL n, unsigned *primes, mpz_t *factor) {
     }
   }
 
+  cudaFree(primes);
+  cudaFree(d_results);
+  cudaFree(d_finished);
+
   return -1;
 }
 
@@ -215,8 +162,7 @@ int generate_prime_table(unsigned **d_table) {
   /* (actual number is 203,280,221)                           */
   /* paper claimed to use ~170,000,000 primes for experiments */
   /* may want to write this to disk at some point...          */
-  unsigned primes = // 200 *
-    1000 * 1000;
+  unsigned primes = TABLE_SIZE;
   unsigned *h_table = (unsigned *) malloc(primes * sizeof(unsigned));
   if (NULL == h_table) {
     fprintf(stderr, "Unable to allocate host prime table!\n");
