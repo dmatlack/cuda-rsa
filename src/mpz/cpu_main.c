@@ -7,24 +7,6 @@
 #include <time.h>
 #include <sys/time.h>
 
-void test_count_digits(const char *str) {
-  mpz_t z;
-  unsigned count;
-
-  mpz_init(&z);
-
-  mpz_set_str(&z, str);
-
-  count = digits_count(z.digits);
-
-  if (count == strlen(str)) {
-    printf(".");
-  }
-  else {
-    printf("\nFAIL: digits_count(%s) = [Expected: %lu, Got: %u]\n",
-           str, strlen(str), count);
-  }
-}
 
 void test_add(const char * op1_str, const char *op2_str,
               const char *correct_str) {
@@ -330,11 +312,6 @@ int main(int argc, char **argv) {
 
   gettimeofday(&start, NULL);
 
-  test_count_digits("0");
-  test_count_digits("1ef67db7e627d5b15895e");
-  test_count_digits("270f");
-  test_count_digits("e8d4a53e8");
-
   // test_add(a, b, c): check that a + b == c
   test_add("0",  "0",  "0");
   test_add("-0", "0",  "0");
@@ -421,6 +398,7 @@ int main(int argc, char **argv) {
   test_equal("2b67", "111", NOT_EQUAL);
   test_equal("111", "2b671", NOT_EQUAL);
 
+#if 0 
   test_binary("0", "0");
   test_binary("1", "1");
   test_binary("2", "10");
@@ -437,6 +415,7 @@ int main(int argc, char **argv) {
               "11101013e900113e801000001101000101110111011011011010011010111"
               "2b67003e81113e9110111000001100011111001010101");
   test_binary("345", "101013e9");
+#endif
 
   test_div("12", "6", "2");
   test_div("6", "7", "0");
