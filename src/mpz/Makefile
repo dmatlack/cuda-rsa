@@ -20,19 +20,7 @@ LDFLAGS = -L/usr/local/cuda/lib64/ -lcudart
 ###
 OTHER_FILES = cuda_string.h digit.h mpz.h
 
-default: gpu cpu
-
-########################################################
-#																											 #
-# GPU test program																		 #
-#																											 #
-########################################################
-gpu: $(OTHER_FILES) kernel.cu gpu_main.c
-		mkdir -p obj
-		$(NVCC) $(NVCCFLAGS) kernel.cu -c -o obj/kernel.o
-		$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LDLIBGS) gpu_main.c -c -o obj/gpu_main.o
-		$(CXX) $(LDFLAGS) $(LDLIBS) obj/gpu_main.o obj/kernel.o -o gpu
-		./gpu
+default: cpu
 
 ########################################################
 #																											 #

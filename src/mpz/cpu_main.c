@@ -49,7 +49,7 @@ void test_add(const char * op1_str, const char *op2_str,
     printf(".");
   }
   else {
-    printf("\nFAIL: %s + %s = [Expected: %s, Got: %s]\n", 
+    printf("\nFAIL: %s + %s = [Expected: %s, Got: %s]\n",
            op1_str, op2_str, correct_str, got_str);
   }
 }
@@ -78,7 +78,7 @@ void test_sub(const char * op1_str, const char *op2_str,
     printf(".");
   }
   else {
-    printf("\nFAIL: %s - %s = [Expected: %s, Got: %s]\n", 
+    printf("\nFAIL: %s - %s = [Expected: %s, Got: %s]\n",
            op1_str, op2_str, correct_str, got_str);
   }
 }
@@ -107,7 +107,7 @@ void test_mult(const char * op1_str, const char *op2_str,
     printf(".");
   }
   else {
-    printf("\nFAIL: %s * %s = [Expected: %s, Got: %s]\n", 
+    printf("\nFAIL: %s * %s = [Expected: %s, Got: %s]\n",
            op1_str, op2_str, correct_str, got_str);
   }
 }
@@ -138,7 +138,7 @@ void test_div(const char * op1_str, const char *op2_str,
     printf(".");
   }
   else {
-    printf("\nFAIL: %s / %s = [Expected: %s, Got: %s]\n", 
+    printf("\nFAIL: %s / %s = [Expected: %s, Got: %s]\n",
            op1_str, op2_str, correct_str, got_str);
   }
 }
@@ -163,7 +163,7 @@ void test_equal(const char * op1_str, const char *op2_str,
     printf(".");
   }
   else {
-    printf("\nFAIL: %s == %s = [Expected: %d, Got: %d]\n", 
+    printf("\nFAIL: %s == %s = [Expected: %d, Got: %d]\n",
            op1_str, op2_str, expected_equality, got_equality);
   }
 }
@@ -233,7 +233,7 @@ void test_mod(const char * op1_str, const char *op2_str,
     printf(".");
   }
   else {
-    printf("\nFAIL: %s %% %s = [Expected: %s, Got: %s]\n", 
+    printf("\nFAIL: %s %% %s = [Expected: %s, Got: %s]\n",
            op1_str, op2_str, correct_str, got_str);
   }
 }
@@ -253,7 +253,7 @@ void test_binary(const char *decimal, const char *binary) {
     printf(".");
   }
   else {
-    printf("\nFAIL: binary conversion of %s = [Expected: %s, Got: %s]\n", 
+    printf("\nFAIL: binary conversion of %s = [Expected: %s, Got: %s]\n",
            decimal, binary, got_str);
   }
 }
@@ -283,7 +283,7 @@ void test_powmod(const char *base_str, const char *exp_str, const char *mod_str,
     printf(".");
   }
   else {
-    printf("\nFAIL: (%s ^ %s) %% %s = [Expected: %s, Got: %s]\n", 
+    printf("\nFAIL: (%s ^ %s) %% %s = [Expected: %s, Got: %s]\n",
            base_str, exp_str, mod_str, correct_str, got_str);
   }
 }
@@ -311,7 +311,7 @@ void test_gcd(const char * op1_str, const char *op2_str,
     printf(".");
   }
   else {
-    printf("\nFAIL: GCD(%s, %s) = [Expected: %s, Got: %s]\n", 
+    printf("\nFAIL: GCD(%s, %s) = [Expected: %s, Got: %s]\n",
            op1_str, op2_str, correct_str, got_str);
   }
 }
@@ -331,9 +331,9 @@ int main(int argc, char **argv) {
   gettimeofday(&start, NULL);
 
   test_count_digits("0");
-  test_count_digits("2339487239847298374928734");
-  test_count_digits("9999");
-  test_count_digits("1000000000000");
+  test_count_digits("1ef67db7e627d5b15895e");
+  test_count_digits("270f");
+  test_count_digits("e8d4a53e8");
 
   // test_add(a, b, c): check that a + b == c
   test_add("0",  "0",  "0");
@@ -344,12 +344,12 @@ int main(int argc, char **argv) {
   test_add("1", "-10", "-9");
   test_add("-10", "1", "-9");
   test_add("-10", "-1", "-11");
-  test_add("1234123849173249817324987", "-29389238479283749283749",
-           "1204734610693966068041238");
-  test_add("-1234123849173249817324987", "29389238479283749283749",
-           "-1204734610693966068041238");
-  test_add("1991", "-1991", "0");
-  test_add("-1991", "1991", "0");
+  test_add("10555fce84aaee06c2dbb", "639319d8e0cb53e67a5",
+           "ff1ccb4abca22b2dc616");
+  test_add("-10555fce84aaee06c2dbb", "639319d8e0cb53e67a5",
+           "-ff1ccb4abca22b2dc616");
+  test_add("7c7", "7c7", "0");
+  test_add("7c7", "7c7", "0");
 
   // test_sub(a, b, c): check that a - b == c
   test_sub("0",  "0",  "0");
@@ -364,36 +364,36 @@ int main(int argc, char **argv) {
   test_sub("1", "-0", "1");
   test_sub("-1", "-0", "-1");
   test_sub("-0", "-1", "1");
-  test_sub("1234123849173249817324987", "29389238479283749283749",
-           "1204734610693966068041238");
-  test_sub("29389238479283749283749", "1234123849173249817324987", 
-           "-1204734610693966068041238");
+  test_sub("10555fce84aaee06c2dbb", "639319d8e0cb53e67a5",
+           "ff1ccb4abca22b2dc616");
+  test_sub("639319d8e0cb53e67a5", "10555fce84aaee06c2dbb",
+           "-ff1ccb4abca22b2dc616");
 
-  test_sub("15418", "0", "15418");
-  test_sub("15418", "-0", "15418");
-  test_sub("-15418", "-0", "-15418");
-  test_sub("-15418", "0", "-15418");
+  test_sub("3c3a", "0", "15418");
+  test_sub("3c3a", "-0", "15418");
+  test_sub("-3c3a", "-0", "3c3a");
+  test_sub("-3c3a", "0", "3c3a");
 
   test_negate("0", "0");
   test_negate("1", "-1");
   test_negate("-1", "1");
-  test_negate("11234", "-11234");
-  test_negate("494949494949494494494949", "-494949494949494494494949");
+  test_negate("2be2", "2be2");
+  test_negate("68cf441105c07f8e80e5", "68cf441105c07f8e80e5");
 
   test_set_i(0, "0");
   test_set_i(-13, "-13");
-  test_set_i(234567, "234567");
+  test_set_i(39447, "234567");
 
   test_mult("1", "1", "1");
   test_mult("1", "2", "2");
   test_mult("10", "99", "990");
-  test_mult("123", "765", "94095");
-  test_mult("765", "123", "94095");
-  test_mult("78787878787878787", "1", "78787878787878787");
-  test_mult("1", "78787878787878787", "78787878787878787");
-  test_mult("293874523745234786952396745769823456789",
-            "208734529374856923746592873465982765",
-  "61341760409221799187557653420334856048688516904554850524715252753396241585");
+  test_mult("123", "765", "16f8f");
+  test_mult("765", "123", "16f8f");
+  test_mult("117e92887c20f83", "1", "78787878787878787");
+  test_mult("1", "117e92887c20f83", "78787878787878787");
+  test_mult("29387452374523478695239674576983944789",
+            "283368281d4318ec40b46851532f2d",
+  "22b7dc599c247f64b410f317d576e8ef2700582cd0c1221c1898a96cbd94b1");
 
   test_mult("-1", "1", "-1");
   test_mult("-1", "-1", "1");
@@ -401,13 +401,13 @@ int main(int argc, char **argv) {
   test_mult("0", "-1", "0");
   test_mult("-1", "0", "0");
 
-  test_mult("2983749283749287349827394872398479283749827394872938479283749283",
+  test_mult("740caaf5437f5dd640804830508dfa688d8afae768090144241a3",
             "0", "0");
   test_mult("0",
-            "2983492873401874018273482347156347856101573456091873465093245045",
+            "740a1d61b481771993a3882e5d4d05b03dc98deb642087e6ac875",
             "0");
-  test_mult("239487", "5926729300018213879", 
-            "1419374619873461987240073");
+  test_mult("3a77f", "523ff8e5af7c33f7",
+            "12c9073cb5de0b068e889");
 
 #define EQUAL      1
 #define NOT_EQUAL  0
@@ -415,11 +415,11 @@ int main(int argc, char **argv) {
   test_equal("0", "0", EQUAL);
   test_equal("-0", "0", EQUAL);
   test_equal("0", "-0", EQUAL);
-  test_equal("2934928749191929923847234234234234293847293847", 
-             "2934928749191929923847234234234234293847293847", EQUAL);
+  test_equal("839b54696f2bdc291beef46061b9164da37f97",
+             "839b54696f2bdc291beef46061b9164da37f97", EQUAL);
   test_equal("1", "2", NOT_EQUAL);
-  test_equal("11111", "111", NOT_EQUAL);
-  test_equal("111", "111111", NOT_EQUAL);
+  test_equal("2b67", "111", NOT_EQUAL);
+  test_equal("111", "2b671", NOT_EQUAL);
 
   test_binary("0", "0");
   test_binary("1", "1");
@@ -429,49 +429,49 @@ int main(int argc, char **argv) {
   test_binary("5", "101");
   test_binary("6", "110");
   test_binary("7", "111");
-  test_binary("8", "1000");
-  test_binary("9", "1001");
-  test_binary("35791837492748", 
-              "1000001000110101101111110000100111011000001100");
-  test_binary("2384729347191823792472938479238741", 
-              "111010110010011100001000001101000101110111011011011010011010111"
-              "111110010001111001110111000001100011111001010101");
-  test_binary("345", "101011001");
+  test_binary("8", "3e8");
+  test_binary("9", "3e9");
+  test_binary("208d6fc2760c",
+              "3e8001000110101102b67100003e911011000001100");
+  test_binary("7593841a2eedb4d7f91e77063e55",
+              "11101013e900113e801000001101000101110111011011011010011010111"
+              "2b67003e81113e9110111000001100011111001010101");
+  test_binary("345", "101013e9");
 
   test_div("12", "6", "2");
   test_div("6", "7", "0");
-  test_div("1234", "65", "18");
-  test_div("123234534524", "6345355", "19421");
-  test_div("1419374619873461987346234", "239487",
-           "5926729300018213879");
+  test_div("4d2", "65", "18");
+  test_div("1cb159c47c", "60d28b", "4bdd");
+  test_div("12c9073cb5de0b06a873a", "3a77f",
+           "523ff8e5af7c33f7");
 
   test_div("-12", "6", "-2");
   test_div("-6", "7", "0");
-  test_div("-1234", "65", "-18");
+  test_div("-4d2", "65", "-18");
 
   test_div("12", "-6", "-2");
   test_div("6", "-7", "0");
-  test_div("1234", "-65", "-18");
+  test_div("4d2", "-65", "-18");
 
   test_mod("0", "4", "0");
-  test_mod("1419374619873461987240073", "239487", "0");
-  test_mod("2374928749", "29", "23");
+  test_mod("12c9073cb5de0b068e889", "3a77f", "0");
+  test_mod("8d8e896d", "29", "23");
 
   test_powmod("4", "4", "3", "1");
   test_powmod("345", "4", "234", "9");
-  test_powmod("345636", "1", "35264", "28260");
-  test_powmod("345636", "2", "35264", "3792");
-  test_powmod("345636", "34", "35264", "18304");
+  test_powmod("54624", "1", "89c0", "6e64");
+  test_powmod("54624", "2", "89c0", "ed0");
+  test_powmod("54624", "34", "89c0", "4780");
 
-  test_gcd("2918", "288", "2");
-  test_gcd("288", "2918", "2");
-  test_gcd("173982", "1009212", "6");
+  test_gcd("b66", "288", "2");
+  test_gcd("288", "b66", "2");
+  test_gcd("2a79e", "f663c", "6");
 
   gettimeofday(&end, NULL);
 
   printf("\n");
 
-  elapsed_us = (end.tv_sec * 1000000 + end.tv_usec) - 
+  elapsed_us = (end.tv_sec * 1000000 + end.tv_usec) -
                (start.tv_sec * 1000000 + start.tv_usec);
 
   printf("Total Test Time: %llu us\n", elapsed_us);
