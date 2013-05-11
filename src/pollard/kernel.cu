@@ -32,7 +32,6 @@ void factorize_kernel(UL N, unsigned *primes, mpz_t *results) {
     mpz_gcd(&d, &a, & n);
     if (mpz_equal(&MPZ_ONE, &d)) {
       results[tid] = d;
-      printf("fuck\n");
       return;
     }
 
@@ -41,7 +40,6 @@ void factorize_kernel(UL N, unsigned *primes, mpz_t *results) {
     mpz_gcd(&d, &t, &n);
     if (mpz_lt(&MPZ_ONE, &d) && mpz_lt(&d, &n)) {
       results[tid] = d;
-      printf("me\n");
       return;
     }
 
@@ -58,7 +56,6 @@ void factorize_kernel(UL N, unsigned *primes, mpz_t *results) {
       mpz_set(&a, &tmp);
     }
     else {
-      printf("bleh\n");
       results[tid] = MPZ_ONE;
       return;
     }
@@ -122,7 +119,7 @@ int generate_prime_table(unsigned **d_table) {
   /* (actual number is 203,280,221)                           */
   /* paper claimed to use ~170,000,000 primes for experiments */
   /* may want to write this to disk at some point...          */
-  unsigned primes = 200;// * 1000 * 1000;
+  unsigned primes = 200 * 1000 * 1000;
   unsigned *h_table = (unsigned *) malloc(primes * sizeof(unsigned));
   if (NULL == h_table) {
     fprintf(stderr, "Unable to allocate host prime table!\n");
