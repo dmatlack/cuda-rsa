@@ -106,40 +106,19 @@ __device__ __host__ inline void mpz_set_lui(mpz_t *mpz, unsigned long z) {
   digits_set_lui(mpz->digits, z);
 }
 
-/**
- * @brief Set the mpz integer based on the provided string.
- */
 __device__ __host__ inline void mpz_set_str(mpz_t *mpz, const char *str) {
-  unsigned num_digits;
-  unsigned i;
-  int is_zero;
-
-  /* Check if the provided number is negative */
-  if (str[0] == '-') {
-    mpz->sign = -1;
-    str++; // the number starts at the next character
-  }
-  else {
-    mpz->sign = 1;
-  }
-
-  num_digits = cuda_strlen(str);
-  CHECK_MEM(mpz, num_digits);
-
-  digits_set_zero(mpz->digits);
-
-  is_zero = true;
-  for (i = 0; i < num_digits; i++) {
-    digit_t d = digit_fromchar(str[num_digits - i - 1]);
-
-    /* keep track of whether or not every digit is zero */
-    is_zero = is_zero && (d == 0);
-
-    /* parse the string backwards (little endian order) */
-    mpz->digits[i] = d;
-  }
-
-  if (is_zero) mpz->sign = 0;
+  (void) mpz;
+  (void) str;
+}
+__device__ __host__ inline void mpz_get_str(mpz_t *mpz, char *str, unsigned s) {
+  (void) mpz;
+  (void) str;
+  (void) s;
+}
+__device__ __host__ inline void mpz_get_binary_str(mpz_t *mpz, char *str, unsigned s) {
+  (void) mpz;
+  (void) str;
+  (void) s;
 }
 
 /**
@@ -455,9 +434,9 @@ __device__ __inline__ void mpz_powmod(mpz_t *result, mpz_t *base,
   mpz_div(&ignore, &_base, &tmp, mod);
 
   iteration = 0;
-  while (!binary_is_zero(e->digits, e->capacity, iteration)) {
+  while (!binary_is_zero(e.digits, e.capacity, iteration)) {
     // if (binary_exp is odd)
-    if (digits_bit_at(e->digits, iteration) == 1) {
+    if (digits_bit_at(e.digits, iteration) == 1) {
       // result = (result * base) % mod
       mpz_mult(&tmp, result, &_base);
       mpz_div(&ignore, result, &tmp, mod);

@@ -13,7 +13,7 @@
 #include "compile.h"
 
 #define LOG2_DIGIT_BASE     32
-#define DIGIT_BASE          (1 << (LOG2_DIGIT_BASE - 1))
+#define DIGIT_BASE          ((unsigned long long) (1 << (LOG2_DIGIT_BASE - 1)))
 #define DIGITS_CAPACITY     4
 
 typedef unsigned digit_t;

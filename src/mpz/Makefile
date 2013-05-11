@@ -20,7 +20,7 @@ LDFLAGS = -L/usr/local/cuda/lib64/ -lcudart
 ###
 OTHER_FILES = cuda_string.h digit.h mpz.h
 
-default: gpu cpu
+default: cpu
 
 ########################################################
 #																											 #
@@ -43,7 +43,6 @@ cpu: $(OTHER_FILES) cpu_main.c
 		mkdir -p obj
 		$(CXX) $(CXXFLAGS) cpu_main.c -c -o obj/cpu_main.o
 		$(CXX) $(CXXFLAGS) obj/cpu_main.o -o cpu
-		./cpu
 
 %.c:
 %.h:

@@ -258,52 +258,6 @@ void test_binary(const char *decimal, const char *binary) {
   }
 }
 
-void test_log_floor(const char *in_str, const char *correct_str) {
-  char got_str[1024];
-  mpz_t mpz;
-  mpz_t log;
-
-  mpz_init(&mpz);
-  mpz_init(&log);
-
-  mpz_set_str(&mpz, in_str);
-
-  mpz_log_floor(&log, &mpz);
-
-  mpz_get_str(&log, got_str, 1024);
-
-  if (!strcmp(correct_str, got_str)) {
-    printf(".");
-  }
-  else {
-    printf("\nFAIL: FLOOR( log10 of %s ) = [Expected: %s, Got: %s]\n", 
-           in_str, correct_str, got_str);
-  }
-}
-
-void test_log_ceil(const char *in_str, const char *correct_str) {
-  char got_str[1024];
-  mpz_t mpz;
-  mpz_t log;
-
-  mpz_init(&mpz);
-  mpz_init(&log);
-
-  mpz_set_str(&mpz, in_str);
-
-  mpz_log_ceil(&log, &mpz);
-
-  mpz_get_str(&log, got_str, 1024);
-
-  if (!strcmp(correct_str, got_str)) {
-    printf(".");
-  }
-  else {
-    printf("\nFAIL: CEIL( log10 of %s ) = [Expected: %s, Got: %s]\n", 
-           in_str, correct_str, got_str);
-  }
-}
-
 void test_powmod(const char *base_str, const char *exp_str, const char *mod_str,
                  const char *correct_str) {
   char got_str[1024];
@@ -512,22 +466,6 @@ int main(int argc, char **argv) {
   test_gcd("2918", "288", "2");
   test_gcd("288", "2918", "2");
   test_gcd("173982", "1009212", "6");
-
-  test_log_floor("1", "0");
-  test_log_floor("9", "0");
-  test_log_floor("10", "1");
-  test_log_floor("11", "1");
-  test_log_floor("99", "1");
-  test_log_floor("100", "2");
-  test_log_floor("1000", "3");
-
-  test_log_ceil("1", "0");
-  test_log_ceil("9", "1");
-  test_log_ceil("10", "1");
-  test_log_ceil("11", "2");
-  test_log_ceil("99", "2");
-  test_log_ceil("100", "2");
-  test_log_ceil("1000", "3");
 
   gettimeofday(&end, NULL);
 
