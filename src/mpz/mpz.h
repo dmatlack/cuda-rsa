@@ -107,7 +107,7 @@ __device__ __host__ inline void mpz_set_lui(mpz_t *mpz, unsigned long z) {
 }
 
 /**
- * @brief Set the mpz integer based on the provided string.
+ * @brief Set the mpz integer based on the provided (hex) string.
  */
 __device__ __host__ inline void mpz_set_str(mpz_t *mpz, const char *str) {
   unsigned num_digits;
@@ -123,14 +123,17 @@ __device__ __host__ inline void mpz_set_str(mpz_t *mpz, const char *str) {
     mpz->sign = 1;
   }
 
-  num_digits = cuda_strlen(str);
+  int len = cuda_strlen(str);
+  num_digits = len / LOG2_DIGIT_BASE;
   CHECK_MEM(mpz, num_digits);
 
   digits_set_zero(mpz->digits);
 
   is_zero = true;
-  for (i = 0; i < num_digits; i++) {
-    digit_t d = digit_fromchar(str[num_digits - i - 1]);
+  for (i = 0; i < num_digits; i ++) {
+    str[len - i * LOG2_DIGIT_BASE] = (char) 0;
+    char *start = max(str + len - (i + 1) * LOG2_DIGIT_BASE, str);
+    digit_t d = strtol(start, NULL, 16);
 
     /* keep track of whether or not every digit is zero */
     is_zero = is_zero && (d == 0);
