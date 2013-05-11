@@ -20,5 +20,6 @@ obj/
 # Project Specific Executables
 src/mpz/cpu
 src/mpz/gpu
-pollard/gpu
-pollard_internet/pollard
+src/pollard/gpu
+src/pollard_internet
+mpz_test

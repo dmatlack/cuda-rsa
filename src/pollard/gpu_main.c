@@ -26,24 +26,20 @@
 #include "kernel.h"
 
 int main(int argc, char *argv[]) {
-  (void) argc;
-  (void) argv;
-
   unsigned *d_table;
   if (0 != generate_prime_table(&d_table)) {
     return 0;
   }
 
-  UL to_factor[] = { 500L, 1982301930192L };
-  unsigned length = 2;
+  mpz_t factor;
+  mpz_init(&factor);
 
   unsigned num_to_factor;
-  for (num_to_factor = 0; num_to_factor < length; num_to_factor ++) {
+   for (num_to_factor = 1; (int) num_to_factor < argc; num_to_factor ++) {
 
-    UL n = to_factor[num_to_factor];
+    UL n = (UL) atol(argv[num_to_factor]);
     printf("%lu: ", n);
 
-    mpz_t factor;
     if (0 == factorize(n, d_table, &factor)) {
       char *factor_str = mpz_get_str(&factor, NULL, 0);
       printf("%s\n", factor_str);
