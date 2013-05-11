@@ -312,116 +312,6 @@ __device__ __host__ inline int mpz_gte(mpz_t *a, mpz_t *b) {
   return (mpz_compare(a, b) >= 0);
 }
 
-
-/**
- * @breif Return the string representation of the integer represented by the
- * mpz_t struct.
- *
- * @warning If buf is NULL, the string is dynamically allocated and must
- * therefore be freed by the user.
- */
-__device__ __host__ inline char* mpz_get_str(mpz_t *mpz, char *buf, unsigned bufsize) {
-  char *str;
-  int print_zeroes = 0; // don't print leading 0s
-  int i, str_index = 0;
-  int prefix_index = 0;
-  int max_size_of_buf = digits_count(mpz->digits) + 1  // for the NULL terminator
-                                                  + 1; // for the negative sign
-
-  // for now just assume the user provided buffer is large enough to hold
-  // the string representation of the integer...
-  (void) bufsize;
-
-  if (NULL == buf) {
-    str = (char *) malloc (sizeof(char) * (max_size_of_buf));
-  }
-  else {
-    str = buf;
-  }
-
-  if (mpz_is_negative(mpz)) {
-    str[0] = '-';
-    prefix_index = 1;
-  }
-
-  for (i = mpz->capacity - 1; i >= 0; i--) {
-    int digit = mpz->digits[i];
-
-    if (digit != 0 || print_zeroes) {
-      print_zeroes = 1;
-      str[prefix_index + str_index++] = digit_tochar(digit);
-    }
-  }
-
-  str[prefix_index + str_index] = (char) 0;
-
-  /* the number is zero */
-  if (str_index == 0) {
-    str[0] = '0';
-    str[1] = (char) 0;
-  }
-
-  return str;
-}
-
-__device__ __host__ inline void mpz_print(mpz_t *mpz) {
-#ifndef __CUDACC__
-  char str[1024];
-
-  mpz_get_str(mpz, str, 1024);
-  printf("%s", str);
-#endif
-}
-
-
-__device__ __host__ inline char* mpz_get_binary_str(mpz_t *mpz, char *buf,
-                                             unsigned bufsize) {
-  char *str;
-  int print_zeroes = 0; // don't print leading 0s
-  int i, str_index = 0;
-  int prefix_index = 0;
-  int max_size_of_buf = BINARY_CAPACITY + 1  // for the NULL terminator
-                                        + 1; // for the negative sign
-  digit_t bits[BINARY_CAPACITY];
-
-  // for now just assume the user provided buffer is large enough to hold
-  // the string representation of the integer...
-  (void) bufsize;
-
-  if (NULL == buf) {
-    str = (char *) malloc (sizeof(char) * (max_size_of_buf));
-  }
-  else {
-    str = buf;
-  }
-
-  if (mpz_is_negative(mpz)) {
-    str[0] = '-';
-    prefix_index = 1;
-  }
-
-  digits_to_binary(bits, mpz->digits);
-
-  for (i = BINARY_CAPACITY - 1; i >= 0; i--) {
-    int bit = bits[i];
-
-    if (bit != 0 || print_zeroes) {
-      print_zeroes = 1;
-      str[prefix_index + str_index++] = '0' + bit;
-    }
-  }
-
-  str[prefix_index + str_index] = (char) 0;
-
-  /* the number is zero */
-  if (str_index == 0) {
-    str[0] = '0';
-    str[1] = (char) 0;
-  }
-
-  return str;
-}
-
 /**
  * @brief Compute the quotient and remainder of n / d.
  *
@@ -542,29 +432,32 @@ __device__ __inline__ void mpz_gcd(mpz_t *gcd, mpz_t *op1, mpz_t *op2) {
  */
 __device__ __inline__ void mpz_powmod(mpz_t *result, mpz_t *base,
                                       mpz_t *exp, mpz_t *mod) {
-  digit_t binary_exp[BINARY_CAPACITY];
   unsigned iteration;
+  mpz_t e;
   mpz_t tmp;
   mpz_t ignore;
   mpz_t _base;
 
+
   // result = 1
   mpz_set_i(result, 1);
 
+  mpz_init(&e);
   mpz_init(&tmp);
   mpz_init(&ignore);
   mpz_init(&_base);
+
+  // e = exp
+  mpz_set(&e, exp);
 
   // _base = base % mod
   mpz_set(&tmp, base);
   mpz_div(&ignore, &_base, &tmp, mod);
 
-  digits_to_binary(binary_exp, exp->digits);
-
   iteration = 0;
-  while (!digits_is_zero(binary_exp + iteration, BINARY_CAPACITY - iteration)) {
+  while (!binary_is_zero(e->digits, e->capacity, iteration)) {
     // if (binary_exp is odd)
-    if (binary_exp[iteration] == 1) {
+    if (digits_bit_at(e->digits, iteration) == 1) {
       // result = (result * base) % mod
       mpz_mult(&tmp, result, &_base);
       mpz_div(&ignore, result, &tmp, mod);
@@ -577,36 +470,6 @@ __device__ __inline__ void mpz_powmod(mpz_t *result, mpz_t *base,
     mpz_set(&ignore, &_base);
     mpz_mult(&tmp, &_base, &ignore);
     mpz_div(&ignore, &_base, &tmp, mod);
-
-  }
-}
-
-/**
- * @brief Return FLOOR[ log (base DIGIT_BASE) of (op1) ]
- */
-__device__ __inline__ void mpz_log_floor(mpz_t *log, mpz_t *op1) {
-  mpz_set_lui(log, digits_count(op1->digits) - 1);
-}
-
-/**
- * @brief Return CEILING[ log (base DIGIT_BASE) of (op1) ]
- */
-__device__ __inline__ void mpz_log_ceil(mpz_t *log, mpz_t *op1) {
-  mpz_t one;
-  mpz_t minus1;
-
-  mpz_init(&one);
-  mpz_init(&minus1);
-  mpz_set_i(&one, 1);
-
-  // minus1 = op1 - 1
-  mpz_sub(&minus1, op1, &one);
-  
-  if (digits_is_zero(minus1.digits, minus1.capacity)) {
-    mpz_set_lui(log, 0);
-  }
-  else {
-    mpz_set_lui(log, digits_count(minus1.digits));
   }
 }
 

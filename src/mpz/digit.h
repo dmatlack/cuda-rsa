@@ -12,23 +12,11 @@
 
 #include "compile.h"
 
-#define DIGIT_BASE       10
-#define DIGITS_CAPACITY  128
-#define BINARY_CAPACITY  426 // log2 (DIGIT_BASE ^ DIGITS_CAPACITY)
+#define LOG2_DIGIT_BASE     32
+#define DIGIT_BASE          (1 << (LOG2_DIGIT_BASE - 1))
+#define DIGITS_CAPACITY     4
 
-typedef unsigned char digit_t;
-
-__device__ __host__ inline char digit_tochar(digit_t d) {
-  return '0' + d;
-}
-
-__device__ __host__ inline digit_t digit_fromchar(char c) {
-  if (c < '0' || c > '9') {
-    c = '0';
-  }
-
-  return c - '0';
-}
+typedef unsigned digit_t;
 
 /**
  * @brief Return true (non-zero) if all of the digits in the digits array
@@ -42,6 +30,45 @@ __device__ __host__ inline int digits_is_zero(digit_t *digits,
     if (digits[i] != 0) return 0;
   }
   return 1;
+}
+
+__device__ __host__ inline int bit_at(digit_t d, unsigned index) {
+  return (0x1 & (d >> index));
+}
+
+__device__ __host__ inline int digits_bit_at(digit_t *digits, unsigned bit_offset) {
+  unsigned digit_index = bit_offset / LOG2_DIGIT_BASE;
+  unsigned bit_index = bit_offset % LOG2_DIGIT_BASE;
+
+  return bit_at(digits[digit_index], bit_index);
+}
+
+__device__ __host__ inline int binary_is_zero(digit_t *digits,
+                                              unsigned capacity,
+                                              unsigned bit_offset) {
+  unsigned i, j;
+  unsigned bit_index = bit_offset % LOG2_DIGIT_BASE;
+
+  for (i = bit_offset / LOG2_DIGIT_BASE; i < capacity; i++) {
+    digit_t d = digits[i];
+
+    /* If the digit index (i) is equal to the bit_offset (in other words,
+     * this is the first digit we need to check), and the bit_index is 
+     * not 0 (the first bit we need to check is in the middle of the digit),
+     * then we have to manually check each bit. */
+    if (i == bit_offset && 0 != bit_index) {
+      for (j = 0; j < LOG2_DIGIT_BASE; j++) {
+        if (bit_at(d, j) != 0) return false;
+      }
+    }
+    /* Otherwise we just have to check that the whole digit is zero (no need
+     * to check each bit since we only care if ALL bits are 0 */
+    else {
+      if (d != 0) return false;
+    }
+  }
+
+  return true;
 }
 
 __device__ __host__ inline void digits_set_zero(digit_t digits[DIGITS_CAPACITY]) {
@@ -287,7 +314,7 @@ __device__ __host__ inline void digits_mult(digit_t *product,
 }
 
 __device__ __host__ inline void digits_rshift(digit_t *digits, unsigned capacity,
-                                       unsigned shift_amount) {
+                                              unsigned shift_amount) {
   int i;
 
   for (i = capacity - shift_amount - 1; i >= 0; i--) {
@@ -296,41 +323,6 @@ __device__ __host__ inline void digits_rshift(digit_t *digits, unsigned capacity
   for (i = 0; i < (int) shift_amount; i++) {
     digits[i] = 0;
   }
-}
-
-/** @brief Compute a /= 2 */
-__device__ __host__ inline void digits_diveq_by_2(digit_t a[DIGITS_CAPACITY]) {
-  digit_t additive = 0, next_additive = 0;
-  int i;
-
-  for (i = DIGITS_CAPACITY - 1; i >= 0; i--) {
-    digit_t d = a[i];
-
-    additive = next_additive;
-    next_additive = (d % 2 == 1) ? (DIGIT_BASE/2) : 0;
-
-    a[i] = d / 2 + additive;
-  }
-}
-
-/** @brief Convert the array of digits to an array of bits */
-__device__ __host__ inline void digits_to_binary(digit_t bits[BINARY_CAPACITY],
-                                          digit_t digits[DIGITS_CAPACITY]) {
-  digit_t tmp[DIGITS_CAPACITY];
-  unsigned i;
-  //unsigned num_bits;
-
-  digits_copy(tmp, digits);
-
-  // clear the binary array
-  for (i = 0; i < BINARY_CAPACITY; i++) bits[i] = 0;
-
-  i = 0;
-  while (!digits_is_zero(tmp, DIGITS_CAPACITY)) {
-    bits[i++] = tmp[0] % 2;
-    digits_diveq_by_2(tmp);
-  }
-
 }
 
 #endif /* __418_DIGIT_H__ */
