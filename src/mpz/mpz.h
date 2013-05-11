@@ -323,24 +323,11 @@ __device__ __host__ inline int mpz_gte(mpz_t *a, mpz_t *b) {
  * @warning If buf is NULL, the string is dynamically allocated and must
  * therefore be freed by the user.
  */
-__device__ __host__ inline char* mpz_get_str(mpz_t *mpz, char *buf, unsigned bufsize) {
+__device__ __host__ inline char* mpz_get_str(mpz_t *mpz, char *str, unsigned bufsize) {
   char *str;
   int print_zeroes = 0; // don't print leading 0s
-  int i, str_index = 0;
+  int i;
   int prefix_index = 0;
-  int max_size_of_buf = digits_count(mpz->digits) + 1  // for the NULL terminator
-                                                  + 1; // for the negative sign
-
-  // for now just assume the user provided buffer is large enough to hold
-  // the string representation of the integer...
-  (void) bufsize;
-
-  if (NULL == buf) {
-    str = (char *) malloc (sizeof(char) * (max_size_of_buf));
-  }
-  else {
-    str = buf;
-  }
 
   if (mpz_is_negative(mpz)) {
     str[0] = '-';
@@ -348,18 +335,18 @@ __device__ __host__ inline char* mpz_get_str(mpz_t *mpz, char *buf, unsigned buf
   }
 
   for (i = mpz->capacity - 1; i >= 0; i--) {
-    int digit = mpz->digits[i];
+    unsigned digit = mpz->digits[i];
 
     if (digit != 0 || print_zeroes) {
+      prefix_index += sprintf(str + prefix_index, "%x", digit);
       print_zeroes = 1;
-      str[prefix_index + str_index++] = digit_tochar(digit);
     }
   }
 
   str[prefix_index + str_index] = (char) 0;
 
   /* the number is zero */
-  if (str_index == 0) {
+  if (print_zeroes == 0) {
     str[0] = '0';
     str[1] = (char) 0;
   }
