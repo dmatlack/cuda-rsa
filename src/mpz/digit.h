@@ -79,11 +79,12 @@ __device__ __host__ inline void digits_set_zero(digit_t digits[DIGITS_CAPACITY])
 __device__ __host__ inline void digits_set_lui(digit_t digits[DIGITS_CAPACITY],
                                         unsigned long z) {
   unsigned i;
+  unsigned long long Z = (unsigned long long) z;
 
   i = 0;
   for (i = 0; i < DIGITS_CAPACITY; i++) {
-    digits[i] = z % 10;
-    z /= 10;
+    digits[i] = (digit_t) Z % DIGIT_BASE;
+    Z /= DIGIT_BASE; //FIXME
   }
 
 }
@@ -154,8 +155,8 @@ __device__ __host__ inline int digits_compare(digit_t *digits1, unsigned num_d1,
  */
 __device__ __host__ inline void clip(unsigned long long value,
                                      digit_t* result, digit_t *carry) {
-  *carry  = value / DIGIT_BASE;
-  *result = value % DIGIT_BASE;
+  *carry  = value / DIGIT_BASE; //FIXME
+  *result = value % DIGIT_BASE; //FIXME
 }
 
 /**
