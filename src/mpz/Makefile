@@ -31,7 +31,6 @@ cpu: $(OTHER_FILES) cpu_main.c
 		mkdir -p obj
 		$(CXX) $(CXXFLAGS) cpu_main.c -c -o obj/cpu_main.o
 		$(CXX) $(CXXFLAGS) obj/cpu_main.o -o cpu
-		./cpu
 
 %.c:
 %.h:

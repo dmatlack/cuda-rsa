@@ -109,15 +109,21 @@ __device__ __host__ inline void mpz_set_lui(mpz_t *mpz, unsigned long z) {
 /**
  * @brief Set the mpz integer based on the provided (hex) string.
  */
-__device__ __host__ inline void mpz_set_str(mpz_t *mpz, const char *str) {
+__device__ __host__ inline void mpz_set_str(mpz_t *mpz, const char *user_str) {
   unsigned num_digits;
   unsigned i;
   int is_zero;
 
+  int bufsize = 1024;
+  char buf[bufsize];
+  memcpy(buf, user_str, bufsize);
+  buf[bufsize - 1] = (char) 0;
+  char *str = &buf[0];
+
   /* Check if the provided number is negative */
   if (str[0] == '-') {
     mpz->sign = -1;
-    str++; // the number starts at the next character
+    str ++; // the number starts at the next character
   }
   else {
     mpz->sign = 1;
@@ -132,7 +138,7 @@ __device__ __host__ inline void mpz_set_str(mpz_t *mpz, const char *str) {
   is_zero = true;
   for (i = 0; i < num_digits; i ++) {
     str[len - i * LOG2_DIGIT_BASE] = (char) 0;
-    char *start = max(str + len - (i + 1) * LOG2_DIGIT_BASE, str);
+    char *start = str + max(len - (i + 1) * LOG2_DIGIT_BASE, 0);
     digit_t d = strtol(start, NULL, 16);
 
     /* keep track of whether or not every digit is zero */
@@ -143,6 +149,12 @@ __device__ __host__ inline void mpz_set_str(mpz_t *mpz, const char *str) {
   }
 
   if (is_zero) mpz->sign = 0;
+}
+
+__device__ __host__ inline void mpz_get_binary_str(mpz_t *mpz, char *str, unsigned s) {
+  (void) mpz;
+  (void) str;
+  (void) s;
 }
 
 /**
@@ -315,7 +327,6 @@ __device__ __host__ inline int mpz_gte(mpz_t *a, mpz_t *b) {
   return (mpz_compare(a, b) >= 0);
 }
 
-
 /**
  * @breif Return the string representation of the integer represented by the
  * mpz_t struct.
@@ -323,27 +334,29 @@ __device__ __host__ inline int mpz_gte(mpz_t *a, mpz_t *b) {
  * @warning If buf is NULL, the string is dynamically allocated and must
  * therefore be freed by the user.
  */
-__device__ __host__ inline char* mpz_get_str(mpz_t *mpz, char *str, unsigned bufsize) {
-  char *str;
+__device__ __host__ inline char* mpz_get_str(mpz_t *mpz, char *str, int bufsize) {
   int print_zeroes = 0; // don't print leading 0s
   int i;
-  int prefix_index = 0;
+  int str_index = 0;
 
   if (mpz_is_negative(mpz)) {
     str[0] = '-';
-    prefix_index = 1;
+    str_index = 1;
   }
 
   for (i = mpz->capacity - 1; i >= 0; i--) {
     unsigned digit = mpz->digits[i];
 
     if (digit != 0 || print_zeroes) {
-      prefix_index += sprintf(str + prefix_index, "%x", digit);
+      if (bufsize < str_index + 8) {
+        return NULL;
+      }
+      str_index += sprintf(str + str_index, "%x", digit);
       print_zeroes = 1;
     }
   }
 
-  str[prefix_index + str_index] = (char) 0;
+  str[str_index] = (char) 0;
 
   /* the number is zero */
   if (print_zeroes == 0) {
@@ -363,54 +376,6 @@ __device__ __host__ inline void mpz_print(mpz_t *mpz) {
 #endif
 }
 
-
-__device__ __host__ inline char* mpz_get_binary_str(mpz_t *mpz, char *buf,
-                                             unsigned bufsize) {
-  char *str;
-  int print_zeroes = 0; // don't print leading 0s
-  int i, str_index = 0;
-  int prefix_index = 0;
-  int max_size_of_buf = BINARY_CAPACITY + 1  // for the NULL terminator
-                                        + 1; // for the negative sign
-  digit_t bits[BINARY_CAPACITY];
-
-  // for now just assume the user provided buffer is large enough to hold
-  // the string representation of the integer...
-  (void) bufsize;
-
-  if (NULL == buf) {
-    str = (char *) malloc (sizeof(char) * (max_size_of_buf));
-  }
-  else {
-    str = buf;
-  }
-
-  if (mpz_is_negative(mpz)) {
-    str[0] = '-';
-    prefix_index = 1;
-  }
-
-  digits_to_binary(bits, mpz->digits);
-
-  for (i = BINARY_CAPACITY - 1; i >= 0; i--) {
-    int bit = bits[i];
-
-    if (bit != 0 || print_zeroes) {
-      print_zeroes = 1;
-      str[prefix_index + str_index++] = '0' + bit;
-    }
-  }
-
-  str[prefix_index + str_index] = (char) 0;
-
-  /* the number is zero */
-  if (str_index == 0) {
-    str[0] = '0';
-    str[1] = (char) 0;
-  }
-
-  return str;
-}
 
 /**
  * @brief Compute the quotient and remainder of n / d.
@@ -532,29 +497,32 @@ __device__ __inline__ void mpz_gcd(mpz_t *gcd, mpz_t *op1, mpz_t *op2) {
  */
 __device__ __inline__ void mpz_powmod(mpz_t *result, mpz_t *base,
                                       mpz_t *exp, mpz_t *mod) {
-  digit_t binary_exp[BINARY_CAPACITY];
   unsigned iteration;
+  mpz_t e;
   mpz_t tmp;
   mpz_t ignore;
   mpz_t _base;
 
+
   // result = 1
   mpz_set_i(result, 1);
 
+  mpz_init(&e);
   mpz_init(&tmp);
   mpz_init(&ignore);
   mpz_init(&_base);
+
+  // e = exp
+  mpz_set(&e, exp);
 
   // _base = base % mod
   mpz_set(&tmp, base);
   mpz_div(&ignore, &_base, &tmp, mod);
 
-  digits_to_binary(binary_exp, exp->digits);
-
   iteration = 0;
-  while (!digits_is_zero(binary_exp + iteration, BINARY_CAPACITY - iteration)) {
+  while (!binary_is_zero(e.digits, e.capacity, iteration)) {
     // if (binary_exp is odd)
-    if (binary_exp[iteration] == 1) {
+    if (digits_bit_at(e.digits, iteration) == 1) {
       // result = (result * base) % mod
       mpz_mult(&tmp, result, &_base);
       mpz_div(&ignore, result, &tmp, mod);
@@ -567,7 +535,6 @@ __device__ __inline__ void mpz_powmod(mpz_t *result, mpz_t *base,
     mpz_set(&ignore, &_base);
     mpz_mult(&tmp, &_base, &ignore);
     mpz_div(&ignore, &_base, &tmp, mod);
-
   }
 }
 
