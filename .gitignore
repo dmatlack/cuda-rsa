@@ -18,7 +18,7 @@ obj/
 *#
 
 # Project Specific Executables
-mpz/cpu
-mpz/gpu
+src/mpz/cpu
+src/mpz/gpu
 pollard/gpu
 pollard_internet/pollard

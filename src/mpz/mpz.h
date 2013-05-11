@@ -581,4 +581,33 @@ __device__ __inline__ void mpz_powmod(mpz_t *result, mpz_t *base,
   }
 }
 
+/**
+ * @brief Return FLOOR[ log (base DIGIT_BASE) of (op1) ]
+ */
+__device__ __inline__ void mpz_log_floor(mpz_t *log, mpz_t *op1) {
+  mpz_set_lui(log, digits_count(op1->digits) - 1);
+}
+
+/**
+ * @brief Return CEILING[ log (base DIGIT_BASE) of (op1) ]
+ */
+__device__ __inline__ void mpz_log_ceil(mpz_t *log, mpz_t *op1) {
+  mpz_t one;
+  mpz_t minus1;
+
+  mpz_init(&one);
+  mpz_init(&minus1);
+  mpz_set_i(&one, 1);
+
+  // minus1 = op1 - 1
+  mpz_sub(&minus1, op1, &one);
+  
+  if (digits_is_zero(minus1.digits, minus1.capacity)) {
+    mpz_set_lui(log, 0);
+  }
+  else {
+    mpz_set_lui(log, digits_count(minus1.digits));
+  }
+}
+
 #endif /* __418_MPZ_H__ */
