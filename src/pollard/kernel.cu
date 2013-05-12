@@ -12,8 +12,11 @@
 __global__
 void parallel_factorize_kernel(UL N, unsigned *primes, bool *finished,
                                mpz_t *result) {
-  mpz_t n, a, d, p, e, b, tmp, tmp_2, MPZ_ONE;
+  unsigned tid = blockDim.x * blockIdx.x + threadIdx.x;
+  unsigned threads = gridDim.x * blockDim.x;
+  unsigned i = blockIdx.x * blockDim.x;
 
+  mpz_t n, a, d, p, e, b, tmp, tmp_2, MPZ_ONE;
   mpz_init(&n);
   mpz_init(&a);
   mpz_init(&d);
@@ -31,44 +34,40 @@ void parallel_factorize_kernel(UL N, unsigned *primes, bool *finished,
   int count = 0;
 
   unsigned B;
-  unsigned max_B = ((N < TABLE_SIZE) ? N : TABLE_SIZE);
-  for (B = B_START; B < max_B; B *= 2) {
-    unsigned tid = blockDim.x * blockIdx.x + threadIdx.x;
-    unsigned threads = gridDim.x * blockDim.x;
-    unsigned i = blockIdx.x * blockDim.x;
+  const unsigned B_MAX = TABLE_SIZE;
 
+  for (B = B_START; B < B_MAX; B *= 2) {
     unsigned it;
     unsigned max_it = 80;
+    unsigned p_i;
 
     mpz_set_lui(&e, (UL) 1);
-    unsigned p_i;
+
     for (p_i = tid; primes[p_i] < B; p_i += threads) {
-      mpz_set_lui(&p, (UL) primes[p_i]);
-      // TODO: replace MPZ_ONE with logB / logp
-      mpz_set_lui(&tmp_2, (UL) (log((double) B) / log((double) primes[p_i])));
+      unsigned prime_ul = (UL) primes[p_i];
+
+      mpz_set_lui(&p, prime_ul);
+
+      mpz_set_lui(&tmp_2, (UL) (log((double) B) / log((double) prime_ul)));
+
       // tmp_2 = floor(log b / log p)
       mpz_powmod(&tmp, &p, &tmp_2, &n); // tmp = (p ** tmp_2) % n
       mpz_mult(&tmp_2, &tmp, &e);       // tmp_2 = tmp * e
       mpz_set(&e, &tmp_2);              // e = tmp_2
     }
 
-    if (mpz_equal(&e, &MPZ_ONE)) return;
-
-    // char *e_str = mpz_get_str(&e, NULL, 0);
-    // printf("\tUsing e = %s\n", e_str);
-    // free(e_str);
+    if (mpz_equal(&e, &MPZ_ONE)) continue;
 
     // try a variety of a values
     mpz_set_lui(&a, 2 + tid);
     for (it = 0; it < max_it; it ++) {
+      printf("it = %d\n", it);
       count ++;
       if (*finished) {
         printf("Ran in %d iterations.\n", count);
         return;
       }
-      // char *a_str = mpz_get_str(&a, NULL, 0);
-      // printf("\t\tUsing a = %s\n", a_str);
-      // free(a_str);
+
       // check for a freebie
       mpz_gcd(&d, &a, &n);
       if (mpz_lt(&MPZ_ONE, &d)) {
@@ -106,7 +105,7 @@ void parallel_factorize_kernel(UL N, unsigned *primes, bool *finished,
 int factorize(UL n, unsigned *primes, mpz_t *factor) {
   unsigned blocks = NUM_BLOCKS;
   unsigned threads_per_block = THREADS_PER_BLOCK;
-  unsigned threads = blocks * threads_per_block;
+  //unsigned threads = blocks * threads_per_block;
 
   size_t result_bytes = sizeof(mpz_t);
 
@@ -133,7 +132,7 @@ int factorize(UL n, unsigned *primes, mpz_t *factor) {
   cudaFree(d_result);
   cudaFree(d_finished);
 
-  return -1;
+  return 0;
 }
 
 void get_prime_table(unsigned *table, unsigned n) {

@@ -1,25 +1,9 @@
-/***************************************************************************
- *	pollard.cc -- Use Pollard's p-1 Algorithm to factor a large integer
+/**
+ * @brief TODO
  *
- *	Uses Pollard's algorithm to (sometimes) factor a large integer into
- *	smaller pieces.  Note this algorithm has a rather high failure rate,
- *	and is only used as an intro to Lenstra's Elliptic Curve Algorithm.
- *	The algorithm was taken from "Rational Points on Elliptic Curves", by
- *	Silverman/Tate, pages 130-132.
- *
- *	Compile:
- *	 g++ -s -O4 -o pollard pollard.cc
- *	Invoke:
- *	 ./pollard NumberToFactor A K
- *	Where A is the base for the a^k-1 calculation (usually A=2).
- *	  and K is a small number, s.t. LCM{1,2,...,K} is product of small
- *	  primes to small powers.
- *
- * ChangeLog:
- *  950516 -- Created by Ami Fischman <fischman@math.ucla.edu>
- *  970301 -- minor fixes -- Paul Herman <a540pau@pslc.ucla.edu>
- *  970324 -- added iteration condition -- Paul
- **************************************************************************/
+ * @author AJ Kaufmann
+ * @author David Matlack
+ */
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
