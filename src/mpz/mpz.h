@@ -58,6 +58,21 @@ typedef struct {
 #define CHECK_SIGN(__mpz)
 #endif
 
+/**
+ * @brief Do some sanity checking on the mpz_t sign field.
+ */
+#ifndef __CUDACC__
+#define CHECK_STRS(s1, s2)                                            \
+  do {                                                                \
+    if (strcmp(s1, s2)) {                                             \
+      printf("Input string %s became %s!\n", s1, s2);                 \
+    }                                                                 \
+  } while (0)
+#else
+#define CHECK_STRS(s1, s2)
+#endif
+
+
 __device__ __host__ inline int mpz_is_negative(mpz_t *mpz) {
   if (digits_is_zero(mpz->digits, mpz->capacity)) return false;
   return (mpz->sign == -1);
@@ -109,6 +124,7 @@ __device__ __host__ inline void mpz_set_lui(mpz_t *mpz, unsigned long z) {
 /**
  * @brief Set the mpz integer based on the provided (hex) string.
  */
+__device__ __host__ inline char* mpz_get_str(mpz_t *mpz, char *str, int bufsize);
 __device__ __host__ inline void mpz_set_str(mpz_t *mpz, const char *user_str) {
   unsigned num_digits;
   unsigned i;
@@ -130,15 +146,16 @@ __device__ __host__ inline void mpz_set_str(mpz_t *mpz, const char *user_str) {
   }
 
   int len = cuda_strlen(str);
-  num_digits = len / LOG2_DIGIT_BASE;
+  int char_per_digit = LOG2_DIGIT_BASE / 4;
+  num_digits = (len + char_per_digit - 1) / char_per_digit;
   CHECK_MEM(mpz, num_digits);
 
   digits_set_zero(mpz->digits);
 
   is_zero = true;
   for (i = 0; i < num_digits; i ++) {
-    str[len - i * LOG2_DIGIT_BASE] = (char) 0;
-    char *start = str + max(len - (i + 1) * LOG2_DIGIT_BASE, 0);
+    str[len - i * char_per_digit] = (char) 0;
+    char *start = str + (int) max(len - (i + 1) * char_per_digit, 0);
     digit_t d = strtol(start, NULL, 16);
 
     /* keep track of whether or not every digit is zero */
@@ -351,7 +368,12 @@ __device__ __host__ inline char* mpz_get_str(mpz_t *mpz, char *str, int bufsize)
       if (bufsize < str_index + 8) {
         return NULL;
       }
-      str_index += sprintf(str + str_index, "%x", digit);
+      if (!print_zeroes) {
+        str_index += sprintf(str + str_index, "%x", digit);
+      }
+      else {
+        str_index += sprintf(str + str_index, "%08x", digit);
+      }
       print_zeroes = 1;
     }
   }

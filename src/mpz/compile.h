@@ -17,8 +17,8 @@
 #include <assert.h>
 #include <string.h>
 
-inline unsigned max(unsigned a, unsigned b) { return (a > b) ? a : b; }
-inline unsigned min(unsigned a, unsigned b) { return (a < b) ? a : b; }
+inline int max(int a, int b) { return (a > b) ? a : b; }
+inline int min(int a, int b) { return (a < b) ? a : b; }
 inline int abs(int a) { return (a < 0) ? -a : a; }
 
 #else /* when compiling with nvcc ... */
