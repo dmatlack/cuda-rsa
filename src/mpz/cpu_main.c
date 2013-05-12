@@ -418,20 +418,20 @@ int main(int argc, char **argv) {
   test_binary("345", "101013e9");
 #endif
 
-  test_div("12", "6", "2");
+  test_div("c", "6", "2");
   test_div("6", "7", "0");
-  test_div("4d2", "65", "12");
+  test_div("4d2", "41", "c");
   test_div("1cb159c47c", "60d28b", "4bdd");
   test_div("12c9073cb5de0b06a873a", "3a77f",
            "523ff8e5af7c33f7");
 
-  test_div("-12", "6", "-2");
+  test_div("-c", "6", "-2");
   test_div("-6", "7", "0");
-  test_div("-4d2", "65", "-18");
+  test_div("-4d2", "41", "-18");
 
-  test_div("12", "-6", "-2");
+  test_div("c", "-6", "-2");
   test_div("6", "-7", "0");
-  test_div("4d2", "-65", "-18");
+  test_div("4d2", "-41", "-18");
 
   test_mod("0", "4", "0");
   test_mod("12c9073cb5de0b068e889", "3a77f", "0");
