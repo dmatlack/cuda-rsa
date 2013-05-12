@@ -166,6 +166,11 @@ __device__ __host__ inline void mpz_set_str(mpz_t *mpz, const char *user_str) {
   }
 
   if (is_zero) mpz->sign = 0;
+
+#if 0
+  mpz_get_str(mpz, buf, bufsize);
+  CHECK_STRS(user_str, buf);
+#endif
 }
 
 __device__ __host__ inline void mpz_get_binary_str(mpz_t *mpz, char *str, unsigned s) {
