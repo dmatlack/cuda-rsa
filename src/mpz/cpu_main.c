@@ -111,6 +111,8 @@ void test_div(const char * op1_str, const char *op2_str,
   mpz_set_str(&op1, op1_str);
   mpz_set_str(&op2, op2_str);
 
+  //printf("Running test %s / %s ...\n", op1_str, op2_str);
+
   mpz_div(&quotient, &remainder, &op1, &op2);
 
   mpz_get_str(&quotient, got_str, 1024);
@@ -302,9 +304,11 @@ void test_gcd(const char * op1_str, const char *op2_str,
 int main(int argc, char **argv) {
   struct timeval start, end;
   unsigned long long elapsed_us;
+  mpz_t mpz;
 
   (void)argc;
   (void)argv;
+  mpz_init(&mpz);
 
   /******************************************************/
   /*  Unit Tests for MPZ Code                           */
@@ -357,7 +361,7 @@ int main(int argc, char **argv) {
   test_negate("-1", "1");
   test_negate("-2be2", "2be2");
   test_negate("2be2", "-2be2");
-  test_negate("68cf441105c07f8e80e5", "68cf441105c07f8e80e5");
+  test_negate("68cf441105c07f8e80e5", "-68cf441105c07f8e80e5");
 
   test_set_i(0, "0");
   test_set_i(-13, "-d");
@@ -421,36 +425,35 @@ int main(int argc, char **argv) {
 
   test_div("c", "6", "2");
   test_div("6", "7", "0");
-  test_div("4d2", "41", "18");
+  test_div("4d2", "41", "12");
   test_div("1cb159c47c", "60d28b", "4bdd");
   test_div("12c9073cb5de0b06a873a", "3a77f",
            "523ff8e5af7c33f7");
 
   test_div("-c", "6", "-2");
   test_div("-6", "7", "0");
-  test_div("-4d2", "41", "-18");
+  test_div("-4d2", "41", "-12");
 
   test_div("c", "-6", "-2");
   test_div("6", "-7", "0");
-  test_div("4d2", "-41", "-18");
+  test_div("4d2", "-41", "-12");
 
   test_mod("0", "4", "0");
   test_mod("12c9073cb5de0b068e889", "3a77f", "0");
   test_mod("8d8e896d", "1d", "17");
 
-#if 0
   test_powmod("4", "4", "3", "1");
-  test_powmod("345", "4", "234", "9");
+  test_powmod("159", "4", "ea", "9");
   test_powmod("54624", "1", "89c0", "6e64");
   test_powmod("54624", "2", "89c0", "ed0");
-  test_powmod("54624", "34", "89c0", "4780");
+  test_powmod("54624", "22", "89c0", "4780");
 
   test_gcd("b66", "288", "2");
   test_gcd("288", "b66", "2");
   test_gcd("2a79e", "f663c", "6");
-#endif
 
   gettimeofday(&end, NULL);
+
 
   printf("\n");
 

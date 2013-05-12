@@ -12,12 +12,15 @@
 #include "cuda_string.h"
 #include "digit.h"
 
+
 /** @breif struct used to represent multiple precision integers (Z). */
 typedef struct {
   digit_t  digits[DIGITS_CAPACITY];
   unsigned capacity;
   char     sign;
 } mpz_t;
+
+__device__ __host__ inline char* mpz_get_str(mpz_t *mpz, char *str, int bufsize);
 
 /**
  * @brief Check that the mpz_t struct has enough memory to store __capacity
@@ -47,6 +50,9 @@ typedef struct {
       if (0 != (__mpz)->sign) {                                       \
         printf("Sign should be 0 in %s:%d but is %d instead.\n",      \
              __func__, __LINE__, (__mpz)->sign);                      \
+        printf("\tmpz = ");                                           \
+        digits_print((__mpz)->digits, (__mpz)->capacity);             \
+        printf("\n");                                                 \
       }                                                               \
     }                                                                 \
     else if (1 != (__mpz)->sign && -1 != (__mpz)->sign) {             \
@@ -124,13 +130,14 @@ __device__ __host__ inline void mpz_set_lui(mpz_t *mpz, unsigned long z) {
 /**
  * @brief Set the mpz integer based on the provided (hex) string.
  */
-__device__ __host__ inline char* mpz_get_str(mpz_t *mpz, char *str, int bufsize);
 __device__ __host__ inline void mpz_set_str(mpz_t *mpz, const char *user_str) {
   unsigned num_digits;
   unsigned i;
   int is_zero;
 
-  int bufsize = 1024;
+  for (i = 0; i < mpz->capacity; i++) mpz->digits[i] = 0;
+
+  const int bufsize = 1024;
   char buf[bufsize];
   memcpy(buf, user_str, bufsize);
   buf[bufsize - 1] = (char) 0;
@@ -403,75 +410,102 @@ __device__ __host__ inline void mpz_print(mpz_t *mpz) {
 #endif
 }
 
+__device__ __host__ inline void mpz_set_bit(mpz_t *mpz, unsigned bit_offset, 
+                                            unsigned bit) {
+  digits_set_bit(mpz->digits, bit_offset, bit);
+  if (0 == mpz->sign && 0 != bit) {
+    mpz->sign = 1;
+  }
+  else if (mpz->sign != 0 && bit == 0) {
+    if (digits_is_zero(mpz->digits, mpz->capacity)) mpz->sign = 0;
+  }
+}
+
+__device__ __host__ inline void mpz_bit_lshift(mpz_t *mpz) {
+  bits_lshift(mpz->digits, mpz->capacity);
+
+  if (mpz->sign != 0 && digits_is_zero(mpz->digits, mpz->capacity)) {
+    mpz->sign = 0;
+  }
+}
 
 /**
  * @brief Compute the quotient and remainder of n / d.
  *
- * Credit for the algorithm to compute the quotient goes to Steven S. Skiena.
- * Original source code can be found here:
- *        http://www.cs.sunysb.edu/~skiena/392/programs/bignum.c
+ *
  */
-__device__ __host__ inline void mpz_div(mpz_t *q, mpz_t *r, mpz_t *n, mpz_t *d) {
-  unsigned n_digit_count = digits_count(n->digits);
-  mpz_t row;
+__device__ __host__ inline void mpz_div(mpz_t *q, mpz_t *r, mpz_t *N, mpz_t *D) {
+  unsigned n_digit_count = digits_count(N->digits);
+  unsigned num_bits;
+  mpz_t n;
+  mpz_t d;
   mpz_t tmp;
-  mpz_t digit;
   int i;
-  int nsign = n->sign;
-  int dsign = d->sign;
+  int nsign = N->sign;
+  int dsign = D->sign;
 
   (void)r;
 
-  mpz_init(&row);
-  mpz_init(&tmp);
-  mpz_init(&digit);
+  num_bits = n_digit_count * LOG2_DIGIT_BASE;
 
+  mpz_init(&n);
+  mpz_init(&d);
+  mpz_init(&tmp);
+
+  mpz_set(&n, N);
+  mpz_set(&d, D);
   mpz_set_i(q, 0);
   mpz_set_i(r, 0);
 
-  if (n->sign < 0) n->sign = 1;
-  if (d->sign < 0) d->sign = 1;
+  if (n.sign < 0) n.sign = 1;
+  if (d.sign < 0) d.sign = 1;
 
-  if (mpz_gt(n, d)) {
+  if (mpz_gt(&n, &d)) {
 
-    for (i = n_digit_count - 1; i >= 0; i--) {
-      digits_rshift(row.digits, row.capacity, 1);
+    for (i = num_bits - 1; i >= 0; i--) {
+      unsigned n_i;
 
-      mpz_set_i(&digit, (int) n->digits[i]);
-      mpz_add(&tmp, &row, &digit);
-      mpz_set(&row, &tmp);
+      // r = r << 1
+      mpz_bit_lshift(r);
 
-      q->digits[i] = 0;
-      while (mpz_gte(&row, d)) {
-        q->digits[i]++;
+      // r(0) = n(i)
+      n_i = digits_bit_at(n.digits, i);
+      mpz_set_bit(r, 0, n_i);
 
-        // row -= d
-        mpz_sub(&tmp, &row, d);
-        mpz_set(&row, &tmp);
+      // if (r >= d)
+      if (mpz_gte(r, &d)) {
+        // r = r - d
+        mpz_sub(&tmp, r, &d);
+        mpz_set(r, &tmp);
+
+        // q(i) = 1
+        //printf("Setting bit %d of q to 1\n", i);
+        //printf("\tBefore: "); mpz_print(q); printf("\n");
+        mpz_set_bit(q, i, 1); 
+        //printf("\tAfter: "); mpz_print(q); printf("\n");
       }
     }
 
-    q->sign = 1;
-
-    mpz_mult(&tmp, q, d);
-    mpz_sub(r, n, &tmp);
-
+    r->sign = 1;
     q->sign = nsign * dsign;
   }
   else {
     // quotient = 0
     mpz_set_i(q, 0);
     // remainder = numerator
-    mpz_set(r, n);
+    mpz_set(r, &n);
   }
 
-  n->sign = nsign;
-  d->sign = dsign;
+  n.sign = nsign;
+  d.sign = dsign;
+
+  if (digits_is_zero(q->digits, q->capacity)) q->sign = 0;
+  if (digits_is_zero(r->digits, r->capacity)) r->sign = 0;
 
   CHECK_SIGN(q);
   CHECK_SIGN(r);
-  CHECK_SIGN(n);
-  CHECK_SIGN(d);
+  CHECK_SIGN(N);
+  CHECK_SIGN(D);
 }
 
 /**
@@ -547,7 +581,7 @@ __device__ __inline__ void mpz_powmod(mpz_t *result, mpz_t *base,
   mpz_div(&ignore, &_base, &tmp, mod);
 
   iteration = 0;
-  while (!binary_is_zero(e.digits, e.capacity, iteration)) {
+  while (!bits_is_zero(e.digits, e.capacity, iteration)) {
     // if (binary_exp is odd)
     if (digits_bit_at(e.digits, iteration) == 1) {
       // result = (result * base) % mod
