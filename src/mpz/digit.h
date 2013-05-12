@@ -13,8 +13,8 @@
 #include "compile.h"
 
 #define LOG2_DIGIT_BASE     32
-#define DIGIT_BASE          ((unsigned long long) (1 << (LOG2_DIGIT_BASE - 1)))
-#define DIGITS_CAPACITY     10
+#define DIGIT_BASE          ((unsigned long long) 1 << (LOG2_DIGIT_BASE))
+#define DIGITS_CAPACITY     16
 
 typedef unsigned digit_t;
 
@@ -83,7 +83,7 @@ __device__ __host__ inline void digits_set_lui(digit_t digits[DIGITS_CAPACITY],
 
   i = 0;
   for (i = 0; i < DIGITS_CAPACITY; i++) {
-    digits[i] = (digit_t) Z % DIGIT_BASE;
+    digits[i] = (digit_t) (Z % DIGIT_BASE);
     Z /= DIGIT_BASE; //FIXME
   }
 
@@ -155,8 +155,8 @@ __device__ __host__ inline int digits_compare(digit_t *digits1, unsigned num_d1,
  */
 __device__ __host__ inline void clip(unsigned long long value,
                                      digit_t* result, digit_t *carry) {
-  *carry  = value / DIGIT_BASE; //FIXME
-  *result = value % DIGIT_BASE; //FIXME
+  *carry  = (digit_t) (value / DIGIT_BASE); //FIXME
+  *result = (digit_t) (value % DIGIT_BASE); //FIXME
 }
 
 /**
