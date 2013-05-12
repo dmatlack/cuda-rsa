@@ -47,13 +47,14 @@ int main(int argc, char *argv[]) {
     gettimeofday(&start, NULL);
 
     if (0 == factorize(n, d_table, &factor)) {
+      char factor_str[1024];
+
       gettimeofday(&end, NULL);
       long elapsed_us = (end.tv_sec * 1000 * 1000 + end.tv_usec) -
         (start.tv_sec * 1000 * 1000 + start.tv_usec);
 
-      char *factor_str = mpz_get_str(&factor, NULL, 0);
-      printf("%s (in %ld us)\n", factor_str, elapsed_us);
-      free(factor_str);
+      mpz_get_str(&factor, factor_str, 1024);
+      printf("%lu (in %ld us)\n", strtol(factor_str, NULL, 16), elapsed_us);
     }
     else {
       printf("unable to find factor\n");
