@@ -344,7 +344,8 @@ int main(int argc, char **argv) {
   test_sub("1", "-0", "1");
   test_sub("-1", "-0", "-1");
   test_sub("-0", "-1", "1");
-  test_sub("10555fce84aaee06c2dbb", "639319d8e0cb53e67a5",
+  test_sub("10555fce84aaee06c2dbb",
+           "639319d8e0cb53e67a5",
            "ff1ccb4abca22b2dc616");
   test_sub("639319d8e0cb53e67a5", "10555fce84aaee06c2dbb",
            "-ff1ccb4abca22b2dc616");
@@ -374,7 +375,7 @@ int main(int argc, char **argv) {
   test_mult("1", "117e92887c20f83", "117e92887c20f83");
   test_mult("29387452374523478695239674576983944789",
             "283368281d4318ec40b46851532f2d",
-  "22b7dc599c247f64b410f317d576e8ef2700582cd0c1221c1898a96cbd94b1");
+            "679193169cd968d048f15c25b0f1d83dfe411ce1e0798ba317f6d20b411e49dba15");
 
   test_mult("-1", "1", "-1");
   test_mult("-1", "-1", "1");
@@ -423,7 +424,7 @@ int main(int argc, char **argv) {
 
   test_div("c", "6", "2");
   test_div("6", "7", "0");
-  test_div("4d2", "41", "c");
+  test_div("4d2", "41", "18");
   test_div("1cb159c47c", "60d28b", "4bdd");
   test_div("12c9073cb5de0b06a873a", "3a77f",
            "523ff8e5af7c33f7");
@@ -438,7 +439,7 @@ int main(int argc, char **argv) {
 
   test_mod("0", "4", "0");
   test_mod("12c9073cb5de0b068e889", "3a77f", "0");
-  test_mod("8d8e896d", "29", "23");
+  test_mod("8d8e896d", "1d", "17");
 
 #if 0
   test_powmod("4", "4", "3", "1");
