@@ -317,16 +317,16 @@ int main(int argc, char **argv) {
   test_add("-0", "0",  "0");
   test_add("0",  "-0", "0");
   test_add("-0", "-0", "0");
-  test_add("1", "10", "11");
-  test_add("1", "-10", "-9");
-  test_add("-10", "1", "-9");
-  test_add("-10", "-1", "-11");
+  test_add("1", "a", "b");
+  test_add("1", "-a", "-9");
+  test_add("-a", "1", "-9");
+  test_add("-a", "-1", "-b");
   test_add("10555fce84aaee06c2dbb", "639319d8e0cb53e67a5",
            "ff1ccb4abca22b2dc616");
   test_add("-10555fce84aaee06c2dbb", "639319d8e0cb53e67a5",
            "-ff1ccb4abca22b2dc616");
-  test_add("7c7", "7c7", "0");
-  test_add("7c7", "7c7", "0");
+  test_add("-7c7", "7c7", "0");
+  test_add("7c7", "-7c7", "0");
 
   // test_sub(a, b, c): check that a - b == c
   test_sub("0",  "0",  "0");
@@ -346,28 +346,29 @@ int main(int argc, char **argv) {
   test_sub("639319d8e0cb53e67a5", "10555fce84aaee06c2dbb",
            "-ff1ccb4abca22b2dc616");
 
-  test_sub("3c3a", "0", "15418");
-  test_sub("3c3a", "-0", "15418");
-  test_sub("-3c3a", "-0", "3c3a");
-  test_sub("-3c3a", "0", "3c3a");
+  test_sub("3c3a", "0", "3c3a");
+  test_sub("3c3a", "-0", "3c3a");
+  test_sub("-3c3a", "-0", "-3c3a");
+  test_sub("-3c3a", "0", "-3c3a");
 
   test_negate("0", "0");
   test_negate("1", "-1");
   test_negate("-1", "1");
-  test_negate("2be2", "2be2");
+  test_negate("-2be2", "2be2");
+  test_negate("2be2", "-2be2");
   test_negate("68cf441105c07f8e80e5", "68cf441105c07f8e80e5");
 
   test_set_i(0, "0");
-  test_set_i(-13, "-13");
-  test_set_i(39447, "234567");
+  test_set_i(-13, "-d");
+  test_set_i(39447, "9a17");
 
   test_mult("1", "1", "1");
   test_mult("1", "2", "2");
-  test_mult("10", "99", "990");
-  test_mult("123", "765", "16f8f");
-  test_mult("765", "123", "16f8f");
-  test_mult("117e92887c20f83", "1", "78787878787878787");
-  test_mult("1", "117e92887c20f83", "78787878787878787");
+  test_mult("a", "63", "3de");
+  test_mult("7b", "2fb", "16e99");
+  test_mult("2fb", "7b", "16e99");
+  test_mult("117e92887c20f83", "1", "117e92887c20f83");
+  test_mult("1", "117e92887c20f83", "117e92887c20f83");
   test_mult("29387452374523478695239674576983944789",
             "283368281d4318ec40b46851532f2d",
   "22b7dc599c247f64b410f317d576e8ef2700582cd0c1221c1898a96cbd94b1");
@@ -401,8 +402,8 @@ int main(int argc, char **argv) {
 #if 0
   test_binary("0", "0");
   test_binary("1", "1");
-  test_binary("2", "10");
-  test_binary("3", "11");
+  test_binary("2", "a");
+  test_binary("3", "b");
   test_binary("4", "100");
   test_binary("5", "101");
   test_binary("6", "110");
