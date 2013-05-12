@@ -18,6 +18,8 @@ void parallel_factorize_kernel(UL N, unsigned B, unsigned *primes,
   unsigned threads = gridDim.x * blockDim.x;
   unsigned i = blockIdx.x * blockDim.x;
 
+  int count = 0;
+
   mpz_init(&n);
   mpz_init(&a);
   mpz_init(&d);
@@ -56,7 +58,9 @@ void parallel_factorize_kernel(UL N, unsigned B, unsigned *primes,
   // try a variety of a values
   mpz_set_lui(&a, 2 + tid);
   for (it = 0; it < max_it; it ++) {
+    count ++;
     if (*finished) {
+      printf("Ran in %d iterations.\n", count);
       return;
     }
     // char *a_str = mpz_get_str(&a, NULL, 0);
@@ -67,6 +71,7 @@ void parallel_factorize_kernel(UL N, unsigned B, unsigned *primes,
     if (mpz_lt(&MPZ_ONE, &d)) {
       results[tid] = d;
       *finished = true;
+      printf("Ran in %d iterations.\n", count);
       return;
     }
 
@@ -78,6 +83,7 @@ void parallel_factorize_kernel(UL N, unsigned B, unsigned *primes,
     if (mpz_lt(&MPZ_ONE, &d) && mpz_lt(&d, &n)) {
       results[tid] = d;
       *finished = true;
+      printf("Ran in %d iterations.\n", count);
       return;
     }
 
@@ -88,6 +94,7 @@ void parallel_factorize_kernel(UL N, unsigned B, unsigned *primes,
     mpz_div(&tmp, &a, &tmp_2, &n);        // a = tmp_2 % n
   }
   // couldn't find anything... :(
+  printf("Ran in %d iterations (and failed).\n", count);
 }
 
 int factorize(UL n, unsigned *primes, mpz_t *factor) {
