@@ -55,7 +55,18 @@ __device__ __host__ inline int digits_bit_at(digit_t *digits, unsigned bit_offse
   return bit_at(digits[digit_index], bit_index);
 }
 
-__device__ __host__ inline int binary_is_zero(digit_t *digits,
+__device__ __host__ inline void digits_set_bit(digit_t *digits, 
+                                              unsigned bit_offset,
+                                              unsigned bit) {
+  unsigned digit_index = bit_offset / LOG2_DIGIT_BASE;
+  unsigned bit_index = bit_offset % LOG2_DIGIT_BASE;
+  unsigned bit_mask = 1 << bit_index;
+  digit_t d = digits[digit_index];
+  
+  digits[digit_index] = (d & ~bit_mask) | (bit << bit_index);
+}
+
+__device__ __host__ inline int bits_is_zero(digit_t *digits,
                                               unsigned capacity,
                                               unsigned bit_offset) {
   unsigned i, j;
@@ -339,6 +350,18 @@ __device__ __host__ inline void digits_rshift(digit_t *digits, unsigned capacity
   }
   for (i = 0; i < (int) shift_amount; i++) {
     digits[i] = 0;
+  }
+}
+
+__device__ __host__ inline void bits_lshift(digit_t *digits, unsigned capacity) {
+  unsigned d_index = 0;
+  unsigned shift_out = 0;
+
+  for (d_index = 0; d_index < capacity; d_index++) {
+    digit_t d = digits[d_index]; 
+    
+    digits[d_index] = shift_out | (d << 1);
+    shift_out = 1 & bit_at(d, LOG2_DIGIT_BASE - 1);
   }
 }
 
