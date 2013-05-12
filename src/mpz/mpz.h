@@ -137,7 +137,7 @@ __device__ __host__ inline void mpz_set_str(mpz_t *mpz, const char *user_str) {
 
   for (i = 0; i < mpz->capacity; i++) mpz->digits[i] = 0;
 
-  int bufsize = 1024;
+  const int bufsize = 1024;
   char buf[bufsize];
   memcpy(buf, user_str, bufsize);
   buf[bufsize - 1] = (char) 0;
