@@ -12,8 +12,10 @@
 #include "cuda_string.h"
 #include "digit.h"
 
+#define MPZ_NEGATIVE      1
+#define MPZ_NONNEGATIVE  0
 
-/** @breif struct used to represent multiple precision integers (Z). */
+/** @brief struct used to represent multiple precision integers (Z). */
 typedef struct {
   digit_t  digits[DIGITS_CAPACITY];
   unsigned capacity;
@@ -41,24 +43,21 @@ __device__ __host__ inline char* mpz_get_str(mpz_t *mpz, char *str, int bufsize)
 #endif
 
 /**
- * @brief Do some sanity checking on the mpz_t sign field.
+ * @brief Sanity check the sign.
  */
 #ifndef __CUDACC__
 #define CHECK_SIGN(__mpz) \
-  do {                                                                \
-    if (digits_is_zero((__mpz)->digits, (__mpz)->capacity)) {         \
-      if (0 != (__mpz)->sign) {                                       \
-        printf("Sign should be 0 in %s:%d but is %d instead.\n",      \
-             __func__, __LINE__, (__mpz)->sign);                      \
-        printf("\tmpz = ");                                           \
-        digits_print((__mpz)->digits, (__mpz)->capacity);             \
-        printf("\n");                                                 \
-      }                                                               \
-    }                                                                 \
-    else if (1 != (__mpz)->sign && -1 != (__mpz)->sign) {             \
-      printf("Sign should be 1 or -1 in %s:%d but is %d instead.\n",  \
-             __func__, __LINE__, (__mpz)->sign);                      \
-    }                                                                 \
+  do {                                                                  \
+    if (digits_is_zero((__mpz)->digits, (__mpz)->capacity) &&           \
+        (__mpz)->sign != MPZ_NONNEGATIVE) {                             \
+      printf("MPZ Sign Error at %s:%d: Value is 0 but sign is %d.\n",   \
+             __func__, __LINE__, (__mpz)->sign);                        \
+    }                                                                   \
+    if ((__mpz)->sign != MPZ_NEGATIVE &&                                \
+        (__mpz)->sign != MPZ_NONNEGATIVE) {                             \
+      printf("MPZ Sign Error at %s:%d: Invalid sign %d.\n",             \
+             __func__, __LINE__, (__mpz)->sign);                        \
+    }                                                                   \
   } while (0)
 #else
 #define CHECK_SIGN(__mpz)
@@ -80,12 +79,14 @@ __device__ __host__ inline char* mpz_get_str(mpz_t *mpz, char *str, int bufsize)
 
 
 __device__ __host__ inline int mpz_is_negative(mpz_t *mpz) {
-  if (digits_is_zero(mpz->digits, mpz->capacity)) return false;
-  return (mpz->sign == -1);
+  return (mpz->sign == MPZ_NEGATIVE);
 }
 
 __device__ __host__ inline void mpz_negate(mpz_t *mpz) {
-  mpz->sign *= -1;
+  mpz->sign = (mpz->sign == MPZ_NEGATIVE) ? MPZ_NONNEGATIVE : MPZ_NEGATIVE;
+  if (digits_is_zero(mpz->digits, mpz->capacity)) {
+    mpz->sign = MPZ_NONNEGATIVE;
+  }
 }
 
 /**
@@ -94,7 +95,7 @@ __device__ __host__ inline void mpz_negate(mpz_t *mpz) {
 __device__ __host__ inline void mpz_init(mpz_t *mpz) {
   mpz->capacity = DIGITS_CAPACITY;
   digits_set_zero(mpz->digits);
-  mpz->sign = 0;
+  mpz->sign = MPZ_NONNEGATIVE;
 }
 
 /**
@@ -109,13 +110,16 @@ __device__ __host__ inline void mpz_set(mpz_t *to, mpz_t *from) {
   }
 
   to->sign = from->sign;
+
+  CHECK_SIGN(to);
+  CHECK_SIGN(from);
 }
 
 /**
  * @brief Set the mpz integer to the provided integer.
  */
 __device__ __host__ inline void mpz_set_i(mpz_t *mpz, int z) {
-  mpz->sign = (z == 0) ? 0 : ((z > 0) ? 1: -1);
+  mpz->sign = (z < 0) ? MPZ_NEGATIVE : MPZ_NONNEGATIVE;
   digits_set_lui(mpz->digits, abs(z));
 }
 
@@ -123,7 +127,7 @@ __device__ __host__ inline void mpz_set_i(mpz_t *mpz, int z) {
  * @brief Set the mpz integer to the provided integer.
  */
 __device__ __host__ inline void mpz_set_lui(mpz_t *mpz, unsigned long z) {
-  mpz->sign = (z == 0) ? 0 : ((z > 0) ? 1: -1);
+  mpz->sign = MPZ_NONNEGATIVE;
   digits_set_lui(mpz->digits, z);
 }
 
@@ -145,11 +149,11 @@ __device__ __host__ inline void mpz_set_str(mpz_t *mpz, const char *user_str) {
 
   /* Check if the provided number is negative */
   if (str[0] == '-') {
-    mpz->sign = -1;
+    mpz->sign = MPZ_NEGATIVE;
     str ++; // the number starts at the next character
   }
   else {
-    mpz->sign = 1;
+    mpz->sign = MPZ_NONNEGATIVE;
   }
 
   int len = cuda_strlen(str);
@@ -172,7 +176,8 @@ __device__ __host__ inline void mpz_set_str(mpz_t *mpz, const char *user_str) {
     mpz->digits[i] = d;
   }
 
-  if (is_zero) mpz->sign = 0;
+  /* Just in case the user gives us -0 as input */
+  if (is_zero) mpz->sign = MPZ_NONNEGATIVE;
 
 #if 0
   mpz_get_str(mpz, buf, bufsize);
@@ -187,10 +192,12 @@ __device__ __host__ inline void mpz_get_binary_str(mpz_t *mpz, char *str, unsign
 }
 
 /**
- * @breif Destroy the mpz_t struct.
+ * @brief Destroy the mpz_t struct.
+ *
+ * @deprecated
  */
 __device__ __host__ inline void mpz_destroy(mpz_t *mpz) {
-  mpz->sign = 0;
+  (void) mpz;
 }
 
 /**
@@ -202,6 +209,7 @@ __device__ __host__ inline void mpz_destroy(mpz_t *mpz) {
  * @warning Assumes dst != op1 != op2
  */
 __device__ __host__ inline void mpz_add(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
+#ifdef __CUDACC__
   unsigned op1_digit_count = digits_count(op1->digits);
   unsigned op2_digit_count = digits_count(op2->digits);
 
@@ -215,6 +223,7 @@ __device__ __host__ inline void mpz_add(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
   CHECK_MEM(dst, capacity);
   CHECK_MEM(op1, capacity);
   CHECK_MEM(op2, capacity);
+#endif
 
   digits_set_zero(dst->digits);
 
@@ -223,7 +232,7 @@ __device__ __host__ inline void mpz_add(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
     digits_add(dst->digits, dst->capacity,
                op1->digits, op1->capacity,
                op2->digits, op2->capacity);
-    dst->sign = -1;
+    dst->sign = MPZ_NEGATIVE;
   }
   /* one or neither are negative */
   else {
@@ -240,11 +249,11 @@ __device__ __host__ inline void mpz_add(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
     /* If there is no carryout, the result is negative */
     if (carry_out == 0 && (mpz_is_negative(op1) || mpz_is_negative(op2))) {
       digits_complement(dst->digits, dst->capacity);
-      dst->sign = -1;
+      dst->sign = MPZ_NEGATIVE;
     }
     /* Otherwise, the result is non-negative */
     else {
-      dst->sign = (digits_is_zero(dst->digits, dst->capacity)) ? 0 : 1;
+      dst->sign = MPZ_NONNEGATIVE;
     }
 
     /* Undo the 10s complement after adding */
@@ -280,13 +289,13 @@ __device__ __host__ inline void mpz_mult(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
   unsigned op2_digit_count = digits_count(op2->digits);
   unsigned capacity = max(op1_digit_count, op2_digit_count);
 
-  digits_set_zero(dst->digits);
-
   /* In multiplication, if the operand with the most digits has D digits,
    * then the result of the addition will have at most 2D digits. */
   CHECK_MEM(dst, 2*capacity);
   CHECK_MEM(op1,   capacity);
   CHECK_MEM(op2,   capacity);
+
+  digits_set_zero(dst->digits);
 
   /* We pass in capacity as the number of digits rather that the actual
    * number of digits in each mpz_t struct. This is done because the
@@ -295,7 +304,10 @@ __device__ __host__ inline void mpz_mult(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
   digits_mult(dst->digits, op1->digits, op2->digits, capacity);
 
   /* Compute the sign of the product */
-  dst->sign = op1->sign * op2->sign;
+  dst->sign = (op1->sign == op2->sign) ? MPZ_NONNEGATIVE : MPZ_NEGATIVE;
+  if (MPZ_NEGATIVE == dst->sign && digits_is_zero(dst->digits, dst->capacity)) {
+    dst->sign = MPZ_NONNEGATIVE;
+  }
 
   CHECK_SIGN(op1);
   CHECK_SIGN(op2);
@@ -318,8 +330,8 @@ __device__ __host__ inline int mpz_compare(mpz_t *a, mpz_t *b) {
   int cmp;
   int negative;
 
-  if (a->sign < b->sign) return MPZ_LESS;
-  if (a->sign > b->sign) return MPZ_GREATER;
+  if (MPZ_NEGATIVE == a->sign && MPZ_NONNEGATIVE == b->sign) return MPZ_LESS;
+  if (MPZ_NEGATIVE == b->sign && MPZ_NONNEGATIVE == a->sign) return MPZ_GREATER;
 
   /* At this point we know they have the same sign */
   cmp = digits_compare(a->digits, a->capacity, b->digits, b->capacity);
@@ -357,7 +369,7 @@ __device__ __host__ inline int mpz_gte(mpz_t *a, mpz_t *b) {
 }
 
 /**
- * @breif Return the string representation of the integer represented by the
+ * @brief Return the string representation of the integer represented by the
  * mpz_t struct.
  *
  * @warning If buf is NULL, the string is dynamically allocated and must
@@ -413,19 +425,18 @@ __device__ __host__ inline void mpz_print(mpz_t *mpz) {
 __device__ __host__ inline void mpz_set_bit(mpz_t *mpz, unsigned bit_offset, 
                                             unsigned bit) {
   digits_set_bit(mpz->digits, bit_offset, bit);
-  if (0 == mpz->sign && 0 != bit) {
-    mpz->sign = 1;
-  }
-  else if (mpz->sign != 0 && bit == 0) {
-    if (digits_is_zero(mpz->digits, mpz->capacity)) mpz->sign = 0;
+   
+  if (MPZ_NEGATIVE == mpz->sign && bit == 0 &&
+      digits_is_zero(mpz->digits, mpz->capacity)) {
+    mpz->sign = MPZ_NONNEGATIVE;
   }
 }
 
 __device__ __host__ inline void mpz_bit_lshift(mpz_t *mpz) {
   bits_lshift(mpz->digits, mpz->capacity);
 
-  if (mpz->sign != 0 && digits_is_zero(mpz->digits, mpz->capacity)) {
-    mpz->sign = 0;
+  if (MPZ_NEGATIVE == mpz->sign && digits_is_zero(mpz->digits, mpz->capacity)) {
+    mpz->sign = MPZ_NONNEGATIVE;
   }
 }
 
@@ -457,8 +468,8 @@ __device__ __host__ inline void mpz_div(mpz_t *q, mpz_t *r, mpz_t *N, mpz_t *D) 
   mpz_set_i(q, 0);
   mpz_set_i(r, 0);
 
-  if (n.sign < 0) n.sign = 1;
-  if (d.sign < 0) d.sign = 1;
+  if (MPZ_NEGATIVE == n.sign) n.sign = MPZ_NONNEGATIVE;
+  if (MPZ_NEGATIVE == d.sign) d.sign = MPZ_NONNEGATIVE;
 
   if (mpz_gt(&n, &d)) {
 
@@ -486,8 +497,11 @@ __device__ __host__ inline void mpz_div(mpz_t *q, mpz_t *r, mpz_t *N, mpz_t *D) 
       }
     }
 
-    r->sign = 1;
-    q->sign = nsign * dsign;
+    /* Compute the sign of the division */
+    q->sign = (nsign == dsign) ? MPZ_NONNEGATIVE : MPZ_NEGATIVE;
+    if (MPZ_NEGATIVE == q->sign && digits_is_zero(q->digits, q->capacity)) {
+      q->sign = MPZ_NONNEGATIVE;
+    }
   }
   else {
     // quotient = 0
@@ -498,9 +512,6 @@ __device__ __host__ inline void mpz_div(mpz_t *q, mpz_t *r, mpz_t *N, mpz_t *D) 
 
   n.sign = nsign;
   d.sign = dsign;
-
-  if (digits_is_zero(q->digits, q->capacity)) q->sign = 0;
-  if (digits_is_zero(r->digits, r->capacity)) r->sign = 0;
 
   CHECK_SIGN(q);
   CHECK_SIGN(r);

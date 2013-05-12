@@ -300,14 +300,24 @@ __device__ __host__ inline digit_t digits_add(digit_t *sum, unsigned sum_num_dig
  * @return The carry out.
  */
 __device__ __host__ inline void long_multiplication(digit_t *product,
-                                             digit_t *op1,
-                                             digit_t *op2,
-                                             unsigned num_digits) {
+                                                    digit_t *op1,
+                                                    digit_t *op2,
+                                                    unsigned num_digits) {
+  int is_op1_zero = true;
+  int is_op2_zero = true;
   unsigned i, j;
 
+  /* zero out product */
   for (i = 0; i < 2*num_digits; i++) {
+    if (i < num_digits) {
+      is_op1_zero = (is_op1_zero) && (op1[i] == 0);
+      is_op2_zero = (is_op1_zero) && (op1[i] == 0);
+    }
     product[i] = 0;
   }
+
+  /* if either of the operands are zero, then their product is zero */
+  if (is_op1_zero || is_op2_zero) return;
 
   for (i = 0; i < num_digits; i++) {
     for (j = 0; j < num_digits; j++) {
