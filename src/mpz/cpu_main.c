@@ -302,15 +302,18 @@ void test_gcd(const char * op1_str, const char *op2_str,
 int main(int argc, char **argv) {
   struct timeval start, end;
   unsigned long long elapsed_us;
+  mpz_t mpz;
 
   (void)argc;
   (void)argv;
+  mpz_init(&mpz);
 
   /******************************************************/
   /*  Unit Tests for MPZ Code                           */
   /******************************************************/
 
   gettimeofday(&start, NULL);
+
 
   // test_add(a, b, c): check that a + b == c
   test_add("0",  "0",  "0");
@@ -448,7 +451,6 @@ int main(int argc, char **argv) {
   test_gcd("288", "b66", "2");
   test_gcd("2a79e", "f663c", "6");
 #endif
-
   gettimeofday(&end, NULL);
 
   printf("\n");

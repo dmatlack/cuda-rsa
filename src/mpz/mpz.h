@@ -12,12 +12,15 @@
 #include "cuda_string.h"
 #include "digit.h"
 
+
 /** @breif struct used to represent multiple precision integers (Z). */
 typedef struct {
   digit_t  digits[DIGITS_CAPACITY];
   unsigned capacity;
   char     sign;
 } mpz_t;
+
+__device__ __host__ inline char* mpz_get_str(mpz_t *mpz, char *str, int bufsize);
 
 /**
  * @brief Check that the mpz_t struct has enough memory to store __capacity
@@ -47,6 +50,9 @@ typedef struct {
       if (0 != (__mpz)->sign) {                                       \
         printf("Sign should be 0 in %s:%d but is %d instead.\n",      \
              __func__, __LINE__, (__mpz)->sign);                      \
+        printf("\tmpz = ");                                           \
+        digits_print((__mpz)->digits, (__mpz)->capacity);             \
+        printf("\n");                                                 \
       }                                                               \
     }                                                                 \
     else if (1 != (__mpz)->sign && -1 != (__mpz)->sign) {             \
@@ -124,11 +130,12 @@ __device__ __host__ inline void mpz_set_lui(mpz_t *mpz, unsigned long z) {
 /**
  * @brief Set the mpz integer based on the provided (hex) string.
  */
-__device__ __host__ inline char* mpz_get_str(mpz_t *mpz, char *str, int bufsize);
 __device__ __host__ inline void mpz_set_str(mpz_t *mpz, const char *user_str) {
   unsigned num_digits;
   unsigned i;
   int is_zero;
+
+  for (i = 0; i < mpz->capacity; i++) mpz->digits[i] = 0;
 
   int bufsize = 1024;
   char buf[bufsize];

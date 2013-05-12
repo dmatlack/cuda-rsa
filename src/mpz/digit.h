@@ -18,6 +18,18 @@
 
 typedef unsigned digit_t;
 
+__device__ __host__ inline void digits_print(digit_t *digits,
+                                            unsigned num_digits) {
+  unsigned i; 
+
+  printf("{ ");
+  for (i = 0; i < num_digits; i++) {
+    printf("%x", digits[i]);
+    if (i < num_digits - 1) printf(", ");
+  }
+  printf(" }");
+}
+
 /**
  * @brief Return true (non-zero) if all of the digits in the digits array
  * are zero (and thus the corresponding number is zero.
@@ -27,9 +39,9 @@ __device__ __host__ inline int digits_is_zero(digit_t *digits,
   unsigned i;
 
   for (i = 0; i < num_digits; i++) {
-    if (digits[i] != 0) return 0;
+    if (digits[i] != 0) return false;
   }
-  return 1;
+  return true;
 }
 
 __device__ __host__ inline int bit_at(digit_t d, unsigned index) {
@@ -157,6 +169,7 @@ __device__ __host__ inline void clip(unsigned long long value,
                                      digit_t* result, digit_t *carry) {
   *carry  = (digit_t) (value / DIGIT_BASE); //FIXME
   *result = (digit_t) (value % DIGIT_BASE); //FIXME
+  //printf("clip(%llu): result = %u, carry = %u\n", value, *result, *carry);
 }
 
 /**
@@ -165,7 +178,9 @@ __device__ __host__ inline void clip(unsigned long long value,
  */
 __device__ __host__ inline digit_t add(digit_t a, digit_t b,
                                 digit_t *carry) {
-  unsigned long long tmp = a + b + *carry;
+  unsigned long long tmp = ((unsigned long long) a) + 
+                           ((unsigned long long) b) + 
+                           ((unsigned long long) *carry);
   digit_t result;
 
   clip(tmp, &result, carry);
@@ -183,7 +198,8 @@ __device__ __host__ inline digit_t add(digit_t a, digit_t b,
  * @return The product (as well as the carry out).
  */
 __device__ __host__ inline digit_t mult(digit_t a, digit_t b, digit_t *carry) {
-  unsigned long long tmp = a*b + *carry;
+  unsigned long long tmp = ((unsigned long long) a) * ((unsigned long long) b) + 
+                           ((unsigned long long) *carry);
   digit_t result;
 
   clip(tmp, &result, carry);
@@ -234,12 +250,11 @@ __device__ __host__ inline void digits_complement(digit_t *digits, unsigned num_
 
   // Complement each digit by subtracting it from BASE-1
   for (i = 0; i < num_digits; i++) {
-    digits[i] = (DIGIT_BASE - 1) - digits[i];
+    digits[i] = (digit_t) ((DIGIT_BASE - 1) - digits[i]);
   }
 
   // Add 1
   digits_add_across(digits, num_digits, 1);
-
 }
 
 /**
@@ -258,6 +273,7 @@ __device__ __host__ inline digit_t digits_add(digit_t *sum, unsigned sum_num_dig
     digit_t b = (i < op2_num_digits) ? op2[i] : 0;
 
     sum[i] = add(a, b, &carry);
+    //printf("\tAdding (%x) + %x + %x = %x (with carry = %x)\n", prev_carry, a, b, sum[i], carry);
   }
 
   return carry;
