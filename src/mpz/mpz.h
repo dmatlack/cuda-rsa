@@ -266,6 +266,43 @@ __device__ __host__ inline void mpz_add(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
   CHECK_SIGN(dst);
 }
 
+__device__ __host__ inline void mpz_addeq(mpz_t *op1, mpz_t *op2) {
+
+  /* If both are negative, treate them as positive and negate the result */
+  if (mpz_is_negative(op1) && mpz_is_negative(op2)) {
+    digits_addeq(op1->digits, op1->capacity,
+               op2->digits, op2->capacity);
+    op1->sign = MPZ_NEGATIVE;
+  }
+  /* one or neither are negative */
+  else {
+    digit_t carry_out;
+
+    /* Perform 10's complement on negative numbers before adding */
+    if (mpz_is_negative(op1)) digits_complement(op1->digits, op1->capacity);
+    if (mpz_is_negative(op2)) digits_complement(op2->digits, op2->capacity);
+
+    carry_out = digits_addeq(op1->digits, op1->capacity,
+                             op2->digits, op2->capacity);
+
+    /* If there is no carryout, the result is negative */
+    if (carry_out == 0 && (mpz_is_negative(op1) || mpz_is_negative(op2))) {
+      digits_complement(op1->digits, op1->capacity);
+      op1->sign = MPZ_NEGATIVE;
+    }
+    /* Otherwise, the result is non-negative */
+    else {
+      op1->sign = MPZ_NONNEGATIVE;
+    }
+
+    /* Undo the 10s complement after adding */
+    if (mpz_is_negative(op2)) digits_complement(op2->digits, op2->capacity);
+  }
+
+  CHECK_SIGN(op1);
+  CHECK_SIGN(op2);
+}
+
 /**
  * @brief Perform dst := op1 - op2.
  *

@@ -14,7 +14,7 @@
 
 #define LOG2_DIGIT_BASE     32
 #define DIGIT_BASE          ((unsigned long long) 1 << (LOG2_DIGIT_BASE))
-#define DIGITS_CAPACITY     4
+#define DIGITS_CAPACITY     6
 
 typedef unsigned digit_t;
 
@@ -318,6 +318,22 @@ __device__ __host__ inline digit_t digits_add(digit_t *sum, unsigned sum_num_dig
 
     sum[i] = add(a, b, &carry);
     //printf("\tAdding (%x) + %x + %x = %x (with carry = %x)\n", prev_carry, a, b, sum[i], carry);
+  }
+
+  return carry;
+}
+
+__device__ __host__ inline digit_t digits_addeq(
+                                digit_t *op1, unsigned op1_num_digits,
+                                digit_t *op2, unsigned op2_num_digits) {
+  digit_t carry = 0;
+  unsigned i;
+
+  for (i = 0; i < op1_num_digits; i++) {
+    digit_t a = (i < op1_num_digits) ? op1[i] : 0;
+    digit_t b = (i < op2_num_digits) ? op2[i] : 0;
+
+    op1[i] = add(a, b, &carry);
   }
 
   return carry;
