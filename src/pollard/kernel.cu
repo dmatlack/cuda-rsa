@@ -133,47 +133,48 @@ void parallel_factorize_kernel(mpz_t n, unsigned *primes, volatile bool *finishe
     unsigned prime_ul = (UL) c_table[0];
     mpz_set_lui(&e, (UL) 1);
     for (p_i = 0; prime_ul < B; p_i ++) {
-
+      if (*finished) return;
       power = (unsigned) (log((double) B) /
                           log((double) prime_ul));
 
       mpz_mult_u(&tmp, &e, (unsigned) pow((double) prime_ul, (double) power)); // tmp = e * p ** power
+      if (*finished) return;
       mpz_set(&e, &tmp);        // e = tmp
 
       prime_ul = c_table[p_i + 1];
     }
 
     if (mpz_equal_one(&e)) continue;
+    if (*finished) return;
 
     for (it = 0; it < max_it; it ++) {
       // printf("it = %d\n", it);
       count ++;
-      if (*finished) {
-        // printf("Ran in %d iterations.\n", count);
-        return;
-      }
+
+      if (*finished) return;
 
       // check for a freebie
       mpz_gcd(&d, &a, &n);
+      if (*finished) return;
       if (mpz_gt_one(&d)) {
         *result = d;
         *finished = true;
-        // printf("Ran in %d iterations.\n", count);
-        return;
       }
+      if (*finished) return;
 
       mpz_powmod(&b, &a, &e, &n);  // b = (a ** e) % n
       mpz_addeq_i(&b, -1); // b -= 1
       mpz_gcd(&d, &b, &n);       // d = gcd(tmp, n)
 
+      if (*finished) return;
+
       // success!
       if (mpz_gt_one(&d) && mpz_lt(&d, &n)) {
         *result = d;
         *finished = true;
-        // printf("Ran in %d iterations.\n", count);
-        return;
       }
 
+      if (*finished) return;
       // otherwise get a new value for a
 #if 0
       mpz_mult(&tmp, &a, &a);               // tmp = a ** 2
