@@ -112,6 +112,16 @@ __device__ __host__ inline void digits_set_lui(digit_t digits[DIGITS_CAPACITY],
 
 }
 
+__device__ __host__ inline void digits_set_ui(digit_t digits[DIGITS_CAPACITY],
+                                        unsigned z) {
+  digits[0] = z;
+  unsigned i;
+  for (i = 1; i < DIGITS_CAPACITY; i++) {
+    digits[i] = (digit_t) 0;
+  }
+
+}
+
 /**
  * @brief Count the number of digits in use in the digits array.
  *
@@ -345,6 +355,7 @@ __device__ __host__ inline void digits_mult_u(digit_t product[DIGITS_CAPACITY],
     digits_add_across(product + k,     2*num_digits - k,     prod);
     digits_add_across(product + k + 1, 2*num_digits - k - 1, carry);
   }
+
 }
 
 /**

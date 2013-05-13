@@ -132,6 +132,14 @@ __device__ __host__ inline void mpz_set_lui(mpz_t *mpz, unsigned long z) {
 }
 
 /**
+ * @brief Set the mpz integer to the provided integer.
+ */
+__device__ __host__ inline void mpz_set_ui(mpz_t *mpz, unsigned z) {
+  mpz->sign = MPZ_NONNEGATIVE;
+  digits_set_lui(mpz->digits, z);
+}
+
+/**
  * @brief Set the mpz integer based on the provided (hex) string.
  */
 __device__ __host__ inline void mpz_set_str(mpz_t *mpz, const char *user_str) {
@@ -472,8 +480,8 @@ __device__ __host__ inline void mpz_div(mpz_t *q, mpz_t *r, mpz_t *n, mpz_t *d) 
 
   mpz_init(&tmp);
 
-  mpz_set_i(q, 0);
-  mpz_set_i(r, 0);
+  mpz_set_ui(q, 0);
+  mpz_set_ui(r, 0);
 
   n->sign = MPZ_NONNEGATIVE;
   d->sign = MPZ_NONNEGATIVE;
@@ -512,7 +520,7 @@ __device__ __host__ inline void mpz_div(mpz_t *q, mpz_t *r, mpz_t *n, mpz_t *d) 
   }
   else {
     // quotient = 0
-    mpz_set_i(q, 0);
+    mpz_set_ui(q, 0);
     // remainder = numerator
     mpz_set(r, n);
   }
@@ -584,7 +592,7 @@ __device__ __inline__ void mpz_powmod(mpz_t *result, mpz_t *base,
 
 
   // result = 1
-  mpz_set_i(result, 1);
+  mpz_set_ui(result, 1);
 
   mpz_init(&e);
   mpz_init(&tmp);
@@ -624,7 +632,7 @@ __device__ __inline__ void mpz_pow(mpz_t *result, mpz_t *base, unsigned exponent
   mpz_init(&tmp);
 
   // result = 1
-  mpz_set_i(result, 1);
+  mpz_set_ui(result, 1);
   for (i = 0; i < exponent; i++) {
     // result *= base
     mpz_mult(&tmp, result, base);
@@ -653,6 +661,7 @@ __device__ __inline__ void mpz_addeq_i(mpz_t *a, int i) {
  */
 __device__ __inline__ void mpz_mult_u(mpz_t *result, mpz_t *a, unsigned i) {
   digits_mult_u(result->digits, a->digits, i);
+  CHECK_SIGN(result);
 }
 
 #endif /* __418_MPZ_H__ */
