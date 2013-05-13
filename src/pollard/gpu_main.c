@@ -8,17 +8,17 @@
 #include <stdio.h>
 #include <math.h>
 #include <iostream>
+#include <time.h>
+#include <sys/time.h>
+
 
 #include "kernel.h"
 
 using namespace std;
 
-int serial_factorize(mpz_t n, unsigned *primes, unsigned num_primes,
+int cpu_factor(mpz_t n, unsigned *primes, unsigned num_primes,
                       mpz_t *result) {
   (void) num_primes;
-  /* unsigned tid = 0; */
-  /* unsigned threads = 1; */
-  /* unsigned i = 0; */
 
   mpz_t a, d, e, b, tmp;
   mpz_init(&a);
@@ -98,6 +98,25 @@ int serial_factorize(mpz_t n, unsigned *primes, unsigned num_primes,
   return -1;
 }
 
+int serial_factorize(mpz_t n, unsigned *primes, unsigned num_primes,
+                      mpz_t *result) {
+  struct timeval start, end;
+  int ret;
+
+  gettimeofday(&start, NULL);
+
+  ret = cpu_factor(n, primes, num_primes, result);
+
+  gettimeofday(&end, NULL);
+
+  long elapsed_us = (end.tv_sec * 1000 * 1000 + end.tv_usec) -
+    (start.tv_sec * 1000 * 1000 + start.tv_usec);
+
+  printf("(in %lu us) ", elapsed_us);
+
+  return ret;
+}
+
 int main(int argc, char *argv[]) {
   if (1 == argc) {
     fprintf(stderr, "Usage: %s <numbers to factor>\n", argv[0]);
@@ -126,6 +145,7 @@ int main(int argc, char *argv[]) {
     mpz_set_str(&n, num_str);
 
     printf("Factoring 0x%s: ", num_str);
+    fflush(stdout);
 
     factorize(n, h_table, num_primes, &factor);
 

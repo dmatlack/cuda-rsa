@@ -12,7 +12,7 @@
 __constant__ unsigned c_table[TABLE_SIZE];
 
 __global__
-void trial_division_kernel(mpz_t n, unsigned *primes, bool *finished,
+void trial_division_kernel(mpz_t n, unsigned *primes, volatile bool *finished,
                                mpz_t *result) {
   unsigned tid = blockDim.x * blockIdx.x + threadIdx.x;
   unsigned threads = gridDim.x * blockDim.x;
@@ -53,7 +53,7 @@ void trial_division_kernel(mpz_t n, unsigned *primes, bool *finished,
 }
 
 __global__
-void prime_division_kernel(mpz_t n, unsigned *primes, bool *finished,
+void prime_division_kernel(mpz_t n, unsigned *primes, volatile bool *finished,
                                mpz_t *result) {
   unsigned tid = blockDim.x * blockIdx.x + threadIdx.x;
   unsigned threads = gridDim.x * blockDim.x;
@@ -102,11 +102,11 @@ void prime_division_kernel(mpz_t n, unsigned *primes, bool *finished,
 }
 
 __global__
-void parallel_factorize_kernel(mpz_t n, unsigned *primes, bool *finished,
+void parallel_factorize_kernel(mpz_t n, unsigned *primes, volatile bool *finished,
                                mpz_t *result) {
-  unsigned tid = blockDim.x * blockIdx.x + threadIdx.x;
-  unsigned bid = blockIdx.x;
-  unsigned threads = gridDim.x * blockDim.x;
+  const unsigned tid = blockDim.x * blockIdx.x + threadIdx.x;
+  //unsigned bid = blockIdx.x;
+  const unsigned threads = gridDim.x * blockDim.x;
   // unsigned i = blockIdx.x * blockDim.x;
 
   mpz_t a, d, e, b, tmp;
@@ -126,7 +126,7 @@ void parallel_factorize_kernel(mpz_t n, unsigned *primes, bool *finished,
 
   for (B = B_START; B < B_MAX; B ++) {
     unsigned it;
-    unsigned max_it = 80;
+    const unsigned max_it = 80;
 
     unsigned p_i;
     unsigned power;
@@ -199,13 +199,11 @@ int parallel_factorize(mpz_t n, unsigned *h_table, unsigned num_primes,
 
   /* move prime table to the gpu */
   // unsigned *d_table;
-  printf("Transferring table to the gpu... "); fflush(stdout);
   if (cudaSuccess != cudaMemcpyToSymbol(c_table, h_table,
                                         num_primes * sizeof(unsigned))) {
     fprintf(stderr, "Unable to allocate device prime table!\n");
     return -1;
   }
-  printf("done!\n"); fflush(stdout);
 
   mpz_t *d_result;
   bool *d_finished;
@@ -220,7 +218,6 @@ int parallel_factorize(mpz_t n, unsigned *h_table, unsigned num_primes,
   struct timeval start, end;
 
   gettimeofday(&start, NULL);
-  printf("got start time... ");
 
   parallel_factorize_kernel<<<blocks, threads_per_block>>>
     (n, NULL, d_finished, d_result);
@@ -228,12 +225,11 @@ int parallel_factorize(mpz_t n, unsigned *h_table, unsigned num_primes,
   cudaDeviceSynchronize();
 
   gettimeofday(&end, NULL);
-  printf("got end time... ");
 
   long elapsed_us = (end.tv_sec * 1000 * 1000 + end.tv_usec) -
     (start.tv_sec * 1000 * 1000 + start.tv_usec);
 
-  printf("(in %ld us): ", elapsed_us);
+  printf("(in %ld us) ", elapsed_us);
 
   if (cudaSuccess != cudaMemcpy(factor, d_result, result_bytes,
                                 cudaMemcpyDeviceToHost)) {

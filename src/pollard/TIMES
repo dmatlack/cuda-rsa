@@ -1,3 +1,8 @@
+
+0x1def = 0x4f * 0x61
+0x531adf = 0x73c * 0xab5
+0x12b1f259795 = 0x721f7 * 0x29efd3
+
  At   | CPU/GPU            | Number                    | Time (s)
 ------+--------------------+---------------------------+-----------
  3:12 | cuda bullshit 1024 | 0x1def                    | 3.838
@@ -5,8 +10,28 @@
  3:25 | cuda bullshit 1024 | 0x1def                    | 2.3985
  3:25 | cuda bullshit 1024 | 0x531adf                  | 39.244
 
- 
 Talk about how we chose # of blocks and # threads per block (and how it
 changes for certain numbers).
 
 Why are we bounded by 2 threads per block?
+
+7:42 am, running with 2048 blocks, 1 thread per block:
+  dmatlack@ghc57 (master) $ ./gpu 1def 531adf 12b1f259795
+  Generating prime table... done!
+  Factoring 0x1def: (in 132993 us) 61
+  Factoring 0x531adf: (in 2264554 us) ab5
+  Factoring 0x12b1f259795: (in 236823318 us) 721f7
+
+7:44 am, running serial on cpu
+  dmatlack@ghc57 (master) $ ./gpu -s 1def 531adf 12b1f259795
+  Generating prime table... done!
+  Factoring 0x1def: (in 43856 us) 4f
+  Factoring 0x531adf: (in 256861 us) ab5
+  Factoring 0x12b1f259795: (in 11097196 us) 721f7
+
+7:56 am, running 2048-1, added lots of checks to finished
+  dmatlack@ghc57 (master) $ ./gpu 1def 531adf 12b1f259795
+  Generating prime table... done!
+  Factoring 0x1def: (in 17329 us) 4f
+  Factoring 0x531adf: (in 2192480 us) ab5
+  Factoring 0x12b1f259795: (in 236313563 us) 721f7
