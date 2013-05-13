@@ -274,6 +274,43 @@ __device__ __host__ inline void mpz_add(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
   CHECK_SIGN(dst);
 }
 
+__device__ __host__ inline void mpz_addeq(mpz_t *op1, mpz_t *op2) {
+
+  /* If both are negative, treate them as positive and negate the result */
+  if (mpz_is_negative(op1) && mpz_is_negative(op2)) {
+    digits_addeq(op1->digits, op1->capacity,
+               op2->digits, op2->capacity);
+    op1->sign = MPZ_NEGATIVE;
+  }
+  /* one or neither are negative */
+  else {
+    digit_t carry_out;
+
+    /* Perform 10's complement on negative numbers before adding */
+    if (mpz_is_negative(op1)) digits_complement(op1->digits, op1->capacity);
+    if (mpz_is_negative(op2)) digits_complement(op2->digits, op2->capacity);
+
+    carry_out = digits_addeq(op1->digits, op1->capacity,
+                             op2->digits, op2->capacity);
+
+    /* If there is no carryout, the result is negative */
+    if (carry_out == 0 && (mpz_is_negative(op1) || mpz_is_negative(op2))) {
+      digits_complement(op1->digits, op1->capacity);
+      op1->sign = MPZ_NEGATIVE;
+    }
+    /* Otherwise, the result is non-negative */
+    else {
+      op1->sign = MPZ_NONNEGATIVE;
+    }
+
+    /* Undo the 10s complement after adding */
+    if (mpz_is_negative(op2)) digits_complement(op2->digits, op2->capacity);
+  }
+
+  CHECK_SIGN(op1);
+  CHECK_SIGN(op2);
+}
+
 /**
  * @brief Perform dst := op1 - op2.
  *
@@ -283,6 +320,18 @@ __device__ __host__ inline void mpz_add(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
 __device__ __host__ inline void mpz_sub(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
   mpz_negate(op2);
   mpz_add(dst, op1, op2);
+  mpz_negate(op2);
+}
+
+/**
+ * @brief Perform op1 -= op2.
+ *
+ * @warning Assumes that all mpz_t parameters have been initialized.
+ * @warning Assumes op1 != op2
+ */
+__device__ __host__ inline void mpz_subeq(mpz_t *op1, mpz_t *op2) {
+  mpz_negate(op2);
+  mpz_addeq(op1, op2);
   mpz_negate(op2);
 }
 
@@ -463,22 +512,15 @@ __device__ __host__ inline void mpz_bit_lshift(mpz_t *mpz) {
   }
 }
 
-/**
- * @brief Compute the quotient and remainder of n / d.
- *
- *
- */
-__device__ __host__ inline void mpz_div(mpz_t *q, mpz_t *r, mpz_t *n, mpz_t *d) {
+__device__ __host__ inline void mpz_div(mpz_t *q, mpz_t *r, mpz_t *n,
+                                            mpz_t *d) {
   unsigned n_digit_count = digits_count(n->digits);
   unsigned num_bits;
-  mpz_t tmp;
   int i;
   int nsign = n->sign;
   int dsign = d->sign;
 
   num_bits = n_digit_count * LOG2_DIGIT_BASE;
-
-  mpz_init(&tmp);
 
   mpz_set_ui(q, 0);
   mpz_set_ui(r, 0);
@@ -501,8 +543,7 @@ __device__ __host__ inline void mpz_div(mpz_t *q, mpz_t *r, mpz_t *n, mpz_t *d) 
       // if (r >= d)
       if (mpz_gte(r, d)) {
         // r = r - d
-        mpz_sub(&tmp, r, d);
-        mpz_set(r, &tmp);
+        mpz_subeq(r, d);
 
         // q(i) = 1
         //printf("Setting bit %d of q to 1\n", i);
@@ -546,28 +587,37 @@ __device__ __host__ inline void mpz_div(mpz_t *q, mpz_t *r, mpz_t *n, mpz_t *d) 
  *    }
  *    gcd = a
  */
-__device__ __inline__ void mpz_gcd(mpz_t *gcd, mpz_t *op1, mpz_t *op2) {
-  mpz_t a;
-  mpz_t b;
-  mpz_t mod;
-  mpz_t quo;
+__device__ __inline__ void mpz_gcd_tmp(mpz_t *gcd, mpz_t *op1, mpz_t *op2,
+                                       // tmps
+                                       mpz_t *tmp1, mpz_t *tmp2,
+                                       mpz_t *tmp3) {
+  mpz_t *a = gcd;
+  mpz_t *b = tmp1;
+  mpz_t *mod = tmp2;
+  mpz_t *quo = tmp3;
+
   int compare = mpz_compare(op1, op2);
 
-  mpz_init(&a);
-  mpz_init(&b);
-  mpz_init(&mod);
-  mpz_init(&quo);
+  mpz_set(a, (compare > 0) ? op1 : op2);
+  mpz_set(b, (compare > 0) ? op2 : op1);
 
-  mpz_set(&a, (compare > 0) ? op1 : op2);
-  mpz_set(&b, (compare > 0) ? op2 : op1);
-
-  while (!digits_is_zero(b.digits, b.capacity)) {
-    mpz_div(&quo, &mod, &a, &b);
-    mpz_set(&a, &b);
-    mpz_set(&b, &mod);
+  while (!digits_is_zero(b->digits, b->capacity)) {
+    mpz_div(quo, mod, a, b);
+    mpz_set(a, b);
+    mpz_set(b, mod);
   }
+}
 
-  mpz_set(gcd, &a);
+__device__ __inline__ void mpz_gcd(mpz_t *gcd, mpz_t *op1, mpz_t *op2) {
+  mpz_t tmp1;
+  mpz_t tmp2;
+  mpz_t tmp3;
+
+  mpz_init(&tmp1);
+  mpz_init(&tmp2);
+  mpz_init(&tmp3);
+
+  mpz_gcd_tmp(gcd, op1, op2, &tmp1, &tmp2, &tmp3);
 }
 
 /**
@@ -582,48 +632,55 @@ __device__ __inline__ void mpz_gcd(mpz_t *gcd, mpz_t *op1, mpz_t *op2) {
  *      base = (base * base) mod modulus
  *    return result
  */
-__device__ __inline__ void mpz_powmod(mpz_t *result, mpz_t *base,
-                                      mpz_t *exp, mpz_t *mod) {
+__device__ __inline__ void mpz_powmod_tmp(mpz_t *result, mpz_t *base,
+                                          mpz_t *exp, mpz_t *mod,
+                                          // temps
+                                          mpz_t *tmp1, mpz_t *tmp2,
+                                          mpz_t *tmp3) {
   unsigned iteration;
-  mpz_t e;
-  mpz_t tmp;
-  mpz_t ignore;
-  mpz_t _base;
 
+  mpz_t *b = tmp3;
 
   // result = 1
   mpz_set_ui(result, 1);
 
-  mpz_init(&e);
-  mpz_init(&tmp);
-  mpz_init(&ignore);
-  mpz_init(&_base);
-
-  // e = exp
-  mpz_set(&e, exp);
-
   // _base = base % mod
-  mpz_set(&tmp, base);
-  mpz_div(&ignore, &_base, &tmp, mod);
+  mpz_set(tmp1, base);
+  mpz_div(tmp2, b, tmp1, mod);
 
   iteration = 0;
-  while (!bits_is_zero(e.digits, e.capacity, iteration)) {
+  while (!bits_is_zero(exp->digits, exp->capacity, iteration)) {
     // if (binary_exp is odd)
-    if (digits_bit_at(e.digits, iteration) == 1) {
+    if (digits_bit_at(exp->digits, iteration) == 1) {
       // result = (result * base) % mod
-      mpz_mult(&tmp, result, &_base);
-      mpz_div(&ignore, result, &tmp, mod);
+      mpz_mult(tmp1, result, b);
+      mpz_div(tmp2, result, tmp1, mod);
     }
 
     // binary_exp = binary_exp >> 1
     iteration++;
 
     // base = (base * base) % mod
-    mpz_set(&ignore, &_base);
-    mpz_mult(&tmp, &_base, &ignore);
-    mpz_div(&ignore, &_base, &tmp, mod);
+    mpz_set(tmp1, b);
+    mpz_mult(tmp2, b, tmp1);
+    mpz_div(tmp1, b, tmp2, mod);
   }
 }
+
+__device__ __inline__ void mpz_powmod(mpz_t *result, mpz_t *base,
+                                      mpz_t *exp, mpz_t *mod) {
+  mpz_t tmp1;
+  mpz_t tmp2;
+  mpz_t tmp3;
+
+  mpz_init(&tmp1);
+  mpz_init(&tmp2);
+  mpz_init(&tmp3);
+
+  mpz_powmod_tmp(result, base, exp, mod, &tmp1, &tmp2, &tmp3);
+}
+
+
 
 __device__ __inline__ void mpz_pow(mpz_t *result, mpz_t *base, unsigned exponent) {
   mpz_t tmp;

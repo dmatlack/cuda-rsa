@@ -64,10 +64,11 @@ void test_add(const char * op1_str, const char *op2_str,
   mpz_init(&op1);
   mpz_init(&op2);
 
+  mpz_set_str(&dst, op1_str);
   mpz_set_str(&op1, op1_str);
   mpz_set_str(&op2, op2_str);
 
-  mpz_add(&dst, &op1, &op2);
+  mpz_addeq(&dst, &op2);
 
   mpz_get_str(&dst, got_str, 1024);
 
