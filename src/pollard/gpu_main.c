@@ -12,11 +12,14 @@
 
 #include "kernel.h"
 
-int serial_factorize(UL N, unsigned *primes, unsigned num_primes,
+int serial_factorize(mpz_t n, unsigned *primes, unsigned num_primes,
                       mpz_t *result) {
   (void) num_primes;
-  mpz_t n, a, d, p, e, b, tmp, tmp_2, MPZ_ONE;
-  mpz_init(&n);
+  unsigned tid = 0;
+  unsigned threads = 1;
+  unsigned i = 0;
+
+  mpz_t a, d, p, e, b, tmp, tmp_2, MPZ_ONE;
   mpz_init(&a);
   mpz_init(&d);
   mpz_init(&p);
@@ -27,8 +30,6 @@ int serial_factorize(UL N, unsigned *primes, unsigned num_primes,
 
   mpz_init(&MPZ_ONE);
   mpz_set_i(&MPZ_ONE, 1);
-
-  mpz_set_lui(&n, N);
 
   int count = 0;
 
@@ -42,7 +43,7 @@ int serial_factorize(UL N, unsigned *primes, unsigned num_primes,
 
     mpz_set_lui(&e, (UL) 1);
 
-    for (p_i = 0; primes[p_i] < B; p_i ++) {
+    for (p_i = tid; primes[p_i] < B; p_i += threads) {
       unsigned prime_ul = (UL) primes[p_i];
 
       mpz_set_lui(&p, prime_ul);
@@ -58,7 +59,8 @@ int serial_factorize(UL N, unsigned *primes, unsigned num_primes,
     if (mpz_equal(&e, &MPZ_ONE)) continue;
 
     // try a variety of a values
-    mpz_set_lui(&a, 2);
+    mpz_set_lui(&a, 2 + tid);
+
     for (it = 0; it < max_it; it ++) {
       // printf("it = %d\n", it);
       count ++;
@@ -83,12 +85,15 @@ int serial_factorize(UL N, unsigned *primes, unsigned num_primes,
       }
 
       // otherwise get a new value for a
-      // mpz_mult(&tmp, &a, &a);               // tmp = a ** 2
-      // mpz_set_lui(&a, (UL) (i + it + tid)); // a = i + it + tid
-      // mpz_add(&tmp_2, &tmp, &a);            // tmp_2 = &tmp + a
-      // mpz_div(&tmp, &a, &tmp_2, &n);        // a = tmp_2 % n
+#if 1
+      mpz_mult(&tmp, &a, &a);               // tmp = a ** 2
+      mpz_set_lui(&a, (UL) (i + it + tid)); // a = i + it + tid
+      mpz_add(&tmp_2, &tmp, &a);            // tmp_2 = &tmp + a
+      mpz_div(&tmp, &a, &tmp_2, &n);        // a = tmp_2 % n
+#else
       mpz_add(&tmp, &a, &MPZ_ONE);
       mpz_set(&a, &tmp);
+#endif
     }
   }
   // couldn't find anything... :(
@@ -102,7 +107,7 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  int (*factorize)(UL, unsigned *, unsigned, mpz_t *) =
+  int (*factorize)(mpz_t, unsigned *, unsigned, mpz_t *) =
     ((strcmp(argv[1], "-s")) ? parallel_factorize : serial_factorize);
   unsigned num_to_factor = ((strcmp(argv[1], "-s")) ? 1 : 2);
 
@@ -112,15 +117,20 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
+  mpz_t n;
   mpz_t factor;
+
   mpz_init(&factor);
+  mpz_init(&n);
 
   struct timeval start, end;
 
   for (; (int) num_to_factor < argc; num_to_factor ++) {
 
-    UL n = (UL) atol(argv[num_to_factor]);
-    printf("%lu: ", n);
+    char *num_str = argv[num_to_factor];
+    mpz_set_str(&n, num_str);
+
+    printf("Factoring 0x%s: ", num_str);
 
     gettimeofday(&start, NULL);
 
@@ -132,7 +142,7 @@ int main(int argc, char *argv[]) {
         (start.tv_sec * 1000 * 1000 + start.tv_usec);
 
       mpz_get_str(&factor, factor_str, 1024);
-      printf("%lu (in %ld us)\n", strtol(factor_str, NULL, 16), elapsed_us);
+      printf("0x%s (in %ld us)\n", factor_str, elapsed_us);
     }
     else {
       printf("unable to find factor\n");

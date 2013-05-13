@@ -9,7 +9,7 @@
 
 #define UL unsigned long
 
-int parallel_factorize(UL n, unsigned *table, unsigned num_primes, mpz_t *factor);
+int parallel_factorize(mpz_t n, unsigned *table, unsigned num_primes, mpz_t *factor);
 
 int generate_prime_table(unsigned **d_table, unsigned num_primes);
 
