@@ -40,7 +40,7 @@ void parallel_factorize_kernel(mpz_t n, unsigned *primes, volatile bool *finishe
   mpz_init(&tmp);
 
   // try a variety of a values
-  mpz_set_ui(&a, (UL) tid + 2);
+  mpz_set_ui(&a, (UL) tid * max_it + 2);
 
   for (B = b_start; B < B_MAX; B += b_inc) {
 

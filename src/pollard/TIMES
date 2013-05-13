@@ -95,4 +95,4 @@ Why are we bounded by 2 threads per block?
   Factoring 0x600FF385C031: (in 20946349 us) ff52d9
   Factoring 0x878D4C7D68E9: (in 2644197 us) ca1e31
   Factoring 0xB8C8CBD2DAEE7D: (in 2001645 us) d978d0b
-  Factoring 0x6926C73F919FA3E7: (in 48448526 us) 79e6711b
+  Factoring 0x6926C73F919FA3E7: (in 5992349 us) 79e6711b
