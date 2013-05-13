@@ -94,8 +94,8 @@ __device__ __host__ inline void mpz_negate(mpz_t *mpz) {
  */
 __device__ __host__ inline void mpz_init(mpz_t *mpz) {
   mpz->capacity = DIGITS_CAPACITY;
-  digits_set_zero(mpz->digits);
-  mpz->sign = MPZ_NONNEGATIVE;
+  /* digits_set_zero(mpz->digits); */
+  /* mpz->sign = MPZ_NONNEGATIVE; */
 }
 
 /**
@@ -302,7 +302,7 @@ __device__ __host__ inline void mpz_mult(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
    * number of digits in each mpz_t struct. This is done because the
    * multiplication code has some assumptions and optimizations (e.g.
    * op1 and op2 to have the same number of digits) */
-  digits_mult(dst->digits, op1->digits, op2->digits, capacity);
+  digits_mult(dst->digits, op1->digits, op2->digits, capacity, dst->capacity);
 
   /* Compute the sign of the product */
   dst->sign = (op1->sign == op2->sign) ? MPZ_NONNEGATIVE : MPZ_NEGATIVE;

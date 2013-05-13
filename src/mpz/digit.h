@@ -14,7 +14,7 @@
 
 #define LOG2_DIGIT_BASE     32
 #define DIGIT_BASE          ((unsigned long long) 1 << (LOG2_DIGIT_BASE))
-#define DIGITS_CAPACITY     16
+#define DIGITS_CAPACITY     4
 
 typedef unsigned digit_t;
 
@@ -359,7 +359,8 @@ __device__ __host__ inline void digits_mult_u(digit_t product[DIGITS_CAPACITY],
 __device__ __host__ inline void long_multiplication(digit_t *product,
                                                     digit_t *op1,
                                                     digit_t *op2,
-                                                    unsigned num_digits) {
+                                                    unsigned num_digits,
+                                                    unsigned prod_capacity) {
   int is_op1_zero = true;
   int is_op2_zero = true;
   unsigned i, j;
@@ -370,6 +371,9 @@ __device__ __host__ inline void long_multiplication(digit_t *product,
       is_op1_zero = (is_op1_zero) && (op1[i] == 0);
       is_op2_zero = (is_op1_zero) && (op1[i] == 0);
     }
+    product[i] = 0;
+  }
+  for (; i < prod_capacity; i ++) {
     product[i] = 0;
   }
 
@@ -402,10 +406,11 @@ __device__ __host__ inline void karatsuba(void) {
  * and product has room for at least 2*num_digits.
  */
 __device__ __host__ inline void digits_mult(digit_t *product,
-                                     digit_t *op1,
-                                     digit_t *op2,
-                                     unsigned num_digits) {
-  long_multiplication(product, op1, op2, num_digits);
+                                            digit_t *op1,
+                                            digit_t *op2,
+                                            unsigned num_digits,
+                                            unsigned prod_capacity) {
+  long_multiplication(product, op1, op2, num_digits, prod_capacity);
 }
 
 __device__ __host__ inline void digits_rshift(digit_t *digits, unsigned capacity,

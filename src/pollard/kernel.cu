@@ -7,7 +7,7 @@
 #include <sys/time.h>
 
 #define NUM_BLOCKS 2048
-#define THREADS_PER_BLOCK 2
+#define THREADS_PER_BLOCK 3
 
 __constant__ unsigned c_table[TABLE_SIZE];
 
@@ -215,6 +215,8 @@ int parallel_factorize(mpz_t n, unsigned *h_table, unsigned num_primes,
     fprintf(stderr, "Unable to allocate device memory!\n");
     return -1;
   }
+
+  cudaDeviceSetCacheConfig(cudaFuncCachePreferL1);
 
   struct timeval start, end;
 
