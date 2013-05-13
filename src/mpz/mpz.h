@@ -35,7 +35,7 @@ __device__ __host__ inline char* mpz_get_str(mpz_t *mpz, char *str, int bufsize)
       printf("MPZ memory error at %s:%d.\n", __func__, __LINE__);       \
       printf("\tmpz capacity: %u, requested capacity %u\n",             \
              (__mpz)->capacity, (__capacity));                          \
-      exit(4);                                                          \
+      assert(0);                                                        \
     }                                                                   \
   } while (0)
 #else
@@ -607,6 +607,21 @@ __device__ __inline__ void mpz_powmod(mpz_t *result, mpz_t *base,
     mpz_set(&ignore, &_base);
     mpz_mult(&tmp, &_base, &ignore);
     mpz_div(&ignore, &_base, &tmp, mod);
+  }
+}
+
+__device__ __inline__ void mpz_pow(mpz_t *result, mpz_t *base, unsigned exponent) {
+  mpz_t tmp;
+  unsigned int i;
+
+  mpz_init(&tmp);
+
+  // result = 1
+  mpz_set_i(result, 1);
+  for (i = 0; i < exponent; i++) {
+    // result *= base
+    mpz_mult(&tmp, result, base);
+    mpz_set(result, &tmp);
   }
 }
 
