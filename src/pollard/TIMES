@@ -96,3 +96,13 @@ Why are we bounded by 2 threads per block?
   Factoring 0x878D4C7D68E9: (in 2644197 us) ca1e31
   Factoring 0xB8C8CBD2DAEE7D: (in 2001645 us) d978d0b
   Factoring 0x6926C73F919FA3E7: (in 48448526 us) 79e6711b
+
+1:57, some serial times, not sure how good they are though
+  Factoring 0x1def: (in 24787 us) 4f correct
+  Factoring 0x531adf: (in 1179829 us) 7c3 correct
+  Factoring 0x12B1F259795: (in 51622158 us) 721f7 correct
+  Factoring 0x89FD383381B: (in 33528633 us) 120fc7 correct
+  Factoring 0x3CF5F89ED5F5: (in 13363419 us) 4f37ad correct
+  Factoring 0x600FF385C031: (in 27469101 us) 605119 correct
+  Factoring 0x878D4C7D68E9: (in 75766724 us) abb039 correct
+  Factoring 0xB8C8CBD2DAEE7D: (in 167479719 us) d978d0b correct

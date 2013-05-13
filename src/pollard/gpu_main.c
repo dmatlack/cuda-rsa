@@ -16,83 +16,115 @@
 
 using namespace std;
 
+void lcm(mpz_t *lcm, mpz_t *a, mpz_t *b) {
+  mpz_t prod;
+  mpz_t gcd;
+  mpz_t tmp;
+
+  mpz_init(&prod);
+  mpz_init(&gcd);
+  mpz_init(&tmp);
+
+  mpz_mult(&prod, a, b);
+  mpz_gcd(&gcd, a, b);
+
+  mpz_div(lcm, &tmp, &prod, &gcd);
+}
+
+void LCM(mpz_t *e, unsigned *primes, unsigned B, mpz_t *tmp) {
+  (void) primes;
+  (void) tmp;
+
+  if (B < 3) mpz_set_lui(e, 2);
+  else {
+    mpz_t b;
+    mpz_t l;
+
+    mpz_init(&b);
+    mpz_init(&l);
+
+    mpz_set_lui(&b, B);
+
+    LCM(&l, primes, B-1, tmp);
+    lcm(e, &l, &b);
+  }
+}
+
+void PP(mpz_t *e, unsigned *primes, unsigned B, mpz_t *tmp) {
+  unsigned p_i;
+  unsigned power;
+  unsigned prime_ul = (UL) primes[0];
+
+  mpz_set_lui(e, 1);
+
+  for (p_i = 0; prime_ul < B; p_i ++) {
+    power = (unsigned) (log((double) B) / log((double) prime_ul));
+
+    mpz_mult_u(tmp, e, pow(prime_ul, power));
+    mpz_set(e, tmp);
+
+    prime_ul = primes[p_i + 1];
+  }
+
+}
+
 int cpu_factor(mpz_t n, unsigned *primes, unsigned num_primes,
                       mpz_t *result) {
   (void) num_primes;
 
+  unsigned B;
+  unsigned max_it;
+  unsigned iteration;
   mpz_t a, d, e, b, tmp;
+
   mpz_init(&a);
   mpz_init(&d);
   mpz_init(&e);
   mpz_init(&b);
   mpz_init(&tmp);
 
-  int count = 0;
+  mpz_set_lui(&a, 2);
+  B = 2;
+  max_it = 2000;
 
-  unsigned B;
-  const unsigned B_MAX = TABLE_SIZE;
+  PP(&e, primes, B, &tmp);
+  for (;;iteration++) {
+    mpz_gcd(&d, &a, &n);
 
-  // try a variety of a values
-  mpz_set_lui(&a, 3);
-
-  for (B = B_START; B < B_MAX; B ++) {
-    unsigned it;
-    unsigned max_it = 80;
-
-    unsigned p_i;
-    unsigned power;
-    unsigned prime_ul = (UL) primes[0];
-    mpz_set_lui(&e, (UL) 1);
-    for (p_i = 0; prime_ul < B; p_i ++) {
-
-      power = (unsigned) (log((double) B) /
-                          log((double) prime_ul));
-
-      mpz_mult_u(&tmp, &e, pow(prime_ul, power)); // tmp = (p ** power) * e
-      mpz_set(&e, &tmp);        // e = tmp
-
-      prime_ul = primes[p_i + 1];
+    if (mpz_gt_one(&d)) {
+      *result = d;
+      return 0;
     }
 
-    if (mpz_equal_one(&e)) continue;
+    mpz_powmod(&b, &a, &e, &n); // b = (a ** e) % n
+    mpz_addeq_i(&b, -1);        // b -= 1
+    mpz_gcd(&d, &b, &n);        // d = gcd(b, n)
 
-    for (it = 0; it < max_it; it ++) {
-      // printf("it = %d\n", it);
-      count ++;
-
-      // check for a freebie
-      mpz_gcd(&d, &a, &n);
-      if (mpz_gt_one(&d)) {
-        *result = d;
-        // printf("Ran in %d iterations.\n", count);
-        return 0;
-      }
-
-      mpz_powmod(&b, &a, &e, &n); // b = (a ** e) % n
-      mpz_addeq_i(&b, -1);        // b -= 1
-      mpz_gcd(&d, &b, &n);        // d = gcd(b, n)
-
-      /* char buf[1024]; */
-      /* mpz_get_str(&b, buf, 1024); */
-      /* cout << "b = " << buf; */
-      /* mpz_get_str(&a, buf, 1024); */
-      /* cout << ", a = " << buf; */
-      /* mpz_get_str(&e, buf, 1024); */
-      /* cout << ", e = " << buf; */
-      /* mpz_get_str(&n, buf, 1024); */
-      /* cout << ", n = " << buf << endl; */
-
-      // success!
-      if (mpz_gt_one(&d) && mpz_lt(&d, &n)) {
-        *result = d;
-        // printf("Ran in %d iterations.\n", count);
-        return 0;
-      }
-
-      // otherwise get a new value for a
-      mpz_addeq_i(&a, 1);       /* a += 1 */
+    if (mpz_gt_one(&d) && mpz_lt(&d, &n)) {
+      *result = d;
+      return 0;
     }
+
+    // tmp = a+1
+    mpz_set(&tmp, &a);
+    mpz_addeq_i(&tmp, 1);
+
+    if ( (0 == (B%60)) || (mpz_equal(&d, &n) && mpz_lt(&tmp, &n)) ||
+         (iteration > max_it) ) {
+      PP(&e, primes, ++B, &tmp);
+
+      // a %= n
+      mpz_div(&tmp, &d, &a, &n);
+      mpz_set(&a, &d);
+      
+      iteration = 0;
+    }
+    else if (mpz_equal_one(&d)) {
+      mpz_addeq_i(&a, 1);
+    }
+    else break;
   }
+
   // couldn't find anything... :(
   // printf("Ran in %d iterations (and failed).\n", count);
   return -1;
