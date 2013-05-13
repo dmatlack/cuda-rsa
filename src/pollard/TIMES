@@ -36,6 +36,13 @@ Why are we bounded by 2 threads per block?
   Factoring 0x531adf: (in 2192480 us) ab5
   Factoring 0x12b1f259795: (in 236313563 us) 721f7
 
+8:44 am, 2048-2, added more checks to *finished
+  dmatlack@ghc57 (master) $ ./gpu 1def 531adf 12b1f259795
+  Generating prime table... done!
+  Factoring 0x1def: (in 105455 us) 4f
+  Factoring 0x531adf: (in 492011 us) 7c3
+  Factoring 0x12b1f259795: (in 183865262 us) 721f7
+
 9:05 am, running 2048-2, added preference of l1 cache
   ajkaufma@ghc54 $ ./gpu 1def 531adf 12B1F259795
   Generating prime table... done!
