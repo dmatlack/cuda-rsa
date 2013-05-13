@@ -3,8 +3,11 @@
 #include "kernel.h"
 #include "primegen.h"
 
-#define NUM_BLOCKS 32
-#define THREADS_PER_BLOCK 32
+#include <time.h>
+#include <sys/time.h>
+
+#define NUM_BLOCKS 1
+#define THREADS_PER_BLOCK 1
 
 __constant__ unsigned c_table[TABLE_SIZE];
 
@@ -102,20 +105,15 @@ __global__
 void parallel_factorize_kernel(mpz_t n, unsigned *primes, bool *finished,
                                mpz_t *result) {
   unsigned tid = blockDim.x * blockIdx.x + threadIdx.x;
-  // unsigned threads = gridDim.x * blockDim.x;
+  unsigned threads = gridDim.x * blockDim.x;
   // unsigned i = blockIdx.x * blockDim.x;
 
-  mpz_t a, d, p, e, b, tmp, tmp_2, MPZ_ONE;
+  mpz_t a, d, e, b, tmp;
   mpz_init(&a);
   mpz_init(&d);
-  mpz_init(&p);
   mpz_init(&e);
   mpz_init(&b);
   mpz_init(&tmp);
-  mpz_init(&tmp_2);
-
-  mpz_init(&MPZ_ONE);
-  mpz_set_i(&MPZ_ONE, 1);
 
   int count = 0;
 
@@ -123,7 +121,7 @@ void parallel_factorize_kernel(mpz_t n, unsigned *primes, bool *finished,
   const unsigned B_MAX = TABLE_SIZE;
 
   // try a variety of a values
-  mpz_set_lui(&a, (UL) tid);
+  mpz_set_lui(&a, (UL) tid + 2);
 
   for (B = B_START; B < B_MAX; B ++) {
     unsigned it;
@@ -135,19 +133,16 @@ void parallel_factorize_kernel(mpz_t n, unsigned *primes, bool *finished,
     mpz_set_lui(&e, (UL) 1);
     for (p_i = 0; prime_ul < B; p_i ++) {
 
-      mpz_set_lui(&p, prime_ul);
-
       power = (unsigned) (log((double) B) /
                           log((double) prime_ul));
 
-      mpz_pow(&tmp, &p, power);     // tmp = (p ** pow)
-      mpz_mult(&tmp_2, &tmp, &e); // tmp_2 = tmp * e
-      mpz_set(&e, &tmp_2);        // e = tmp_2
+      mpz_mult_u(&tmp, &e, (unsigned) pow((double) prime_ul, (double) power)); // tmp = e * p ** power
+      mpz_set(&e, &tmp);        // e = tmp
 
       prime_ul = c_table[p_i + 1];
     }
 
-    if (mpz_equal(&e, &MPZ_ONE)) continue;
+    if (mpz_equal_one(&e)) continue;
 
     for (it = 0; it < max_it; it ++) {
       // printf("it = %d\n", it);
@@ -159,7 +154,7 @@ void parallel_factorize_kernel(mpz_t n, unsigned *primes, bool *finished,
 
       // check for a freebie
       mpz_gcd(&d, &a, &n);
-      if (mpz_lt(&MPZ_ONE, &d)) {
+      if (mpz_gt_one(&d)) {
         *result = d;
         *finished = true;
         // printf("Ran in %d iterations.\n", count);
@@ -167,11 +162,11 @@ void parallel_factorize_kernel(mpz_t n, unsigned *primes, bool *finished,
       }
 
       mpz_powmod(&b, &a, &e, &n);  // b = (a ** e) % n
-      mpz_sub(&tmp, &b, &MPZ_ONE); // tmp = b - 1
-      mpz_gcd(&d, &tmp, &n);       // d = gcd(tmp, n)
+      mpz_addeq_i(&b, -1); // b -= 1
+      mpz_gcd(&d, &b, &n);       // d = gcd(tmp, n)
 
       // success!
-      if (mpz_lt(&MPZ_ONE, &d) && mpz_lt(&d, &n)) {
+      if (mpz_gt_one(&d) && mpz_lt(&d, &n)) {
         *result = d;
         *finished = true;
         // printf("Ran in %d iterations.\n", count);
@@ -185,8 +180,7 @@ void parallel_factorize_kernel(mpz_t n, unsigned *primes, bool *finished,
       mpz_add(&tmp_2, &tmp, &a);            // tmp_2 = &tmp + a
       mpz_div(&tmp, &a, &tmp_2, &n);        // a = tmp_2 % n
 #else
-      mpz_add(&tmp, &a, &MPZ_ONE);
-      mpz_set(&a, &tmp);
+      mpz_addeq_i(&a, threads);       // a += 1
 #endif
     }
   }
@@ -222,8 +216,23 @@ int parallel_factorize(mpz_t n, unsigned *h_table, unsigned num_primes,
     return -1;
   }
 
+  struct timeval start, end;
+
+  gettimeofday(&start, NULL);
+  printf("got start time... ");
+
   parallel_factorize_kernel<<<blocks, threads_per_block>>>
     (n, NULL, d_finished, d_result);
+
+  cudaDeviceSynchronize();
+
+  gettimeofday(&end, NULL);
+  printf("got end time... ");
+
+  long elapsed_us = (end.tv_sec * 1000 * 1000 + end.tv_usec) -
+    (start.tv_sec * 1000 * 1000 + start.tv_usec);
+
+  printf("(in %ld us): ", elapsed_us);
 
   if (cudaSuccess != cudaMemcpy(factor, d_result, result_bytes,
                                 cudaMemcpyDeviceToHost)) {

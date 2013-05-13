@@ -176,7 +176,7 @@ __device__ __host__ inline int digits_equal_one(digit_t *digits, unsigned capaci
     return false;
   }
 
-  int i;
+  unsigned i;
   for (i = 1; i < capacity; i ++) {
     if (digits[i] != 0) {
       return false;
@@ -192,7 +192,7 @@ __device__ __host__ inline int digits_gt_one(digit_t *digits, unsigned capacity)
   if (digits[0] > 1) {
     return true;
   }
-  int i;
+  unsigned i;
   for (i = 1; i < capacity; i ++) {
     if (digits[i] != 0) {
       return true;

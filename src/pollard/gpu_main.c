@@ -6,10 +6,8 @@
  */
 #include <stdlib.h>
 #include <stdio.h>
-#include <time.h>
 #include <math.h>
 #include <iostream>
-#include <sys/time.h>
 
 #include "kernel.h"
 
@@ -22,13 +20,12 @@ int serial_factorize(mpz_t n, unsigned *primes, unsigned num_primes,
   /* unsigned threads = 1; */
   /* unsigned i = 0; */
 
-  mpz_t a, d, e, b, tmp, tmp_2;
+  mpz_t a, d, e, b, tmp;
   mpz_init(&a);
   mpz_init(&d);
   mpz_init(&e);
   mpz_init(&b);
   mpz_init(&tmp);
-  mpz_init(&tmp_2);
 
   int count = 0;
 
@@ -51,8 +48,8 @@ int serial_factorize(mpz_t n, unsigned *primes, unsigned num_primes,
       power = (unsigned) (log((double) B) /
                           log((double) prime_ul));
 
-      mpz_mult_u(&tmp_2, &e, pow(prime_ul, power)); // tmp_2 = (p ** power) * e
-      mpz_set(&e, &tmp_2);        // e = tmp_2
+      mpz_mult_u(&tmp, &e, pow(prime_ul, power)); // tmp = (p ** power) * e
+      mpz_set(&e, &tmp);        // e = tmp
 
       prime_ul = primes[p_i + 1];
     }
@@ -93,14 +90,7 @@ int serial_factorize(mpz_t n, unsigned *primes, unsigned num_primes,
       }
 
       // otherwise get a new value for a
-#if 0
-      mpz_mult(&tmp, &a, &a);               // tmp = a ** 2
-      mpz_set_lui(&a, (UL) (i + it + tid)); // a = i + it + tid
-      mpz_add(&tmp_2, &tmp, &a);            // tmp_2 = &tmp + a
-      mpz_div(&tmp, &a, &tmp_2, &n);        // a = tmp_2 % n
-#else
       mpz_addeq_i(&a, 1);       /* a += 1 */
-#endif
     }
   }
   // couldn't find anything... :(
@@ -130,8 +120,6 @@ int main(int argc, char *argv[]) {
   mpz_init(&factor);
   mpz_init(&n);
 
-  struct timeval start, end;
-
   for (; (int) num_to_factor < argc; num_to_factor ++) {
 
     char *num_str = argv[num_to_factor];
@@ -139,22 +127,11 @@ int main(int argc, char *argv[]) {
 
     printf("Factoring 0x%s: ", num_str);
 
-    gettimeofday(&start, NULL);
+    factorize(n, h_table, num_primes, &factor);
 
-    if (0 == factorize(n, h_table, num_primes, &factor)) {
-      char factor_str[1024];
-
-      gettimeofday(&end, NULL);
-      long elapsed_us = (end.tv_sec * 1000 * 1000 + end.tv_usec) -
-        (start.tv_sec * 1000 * 1000 + start.tv_usec);
-
-      mpz_get_str(&factor, factor_str, 1024);
-      printf("0x%s (in %ld us)\n", factor_str, elapsed_us);
-    }
-    else {
-      printf("unable to find factor\n");
-    }
-
+    char factor_str[1024];
+    mpz_get_str(&factor, factor_str, 1024);
+    printf("%s\n", factor_str);
   }
 
   free(h_table);
