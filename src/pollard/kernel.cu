@@ -6,6 +6,8 @@
 #define NUM_BLOCKS 32
 #define THREADS_PER_BLOCK 32
 
+__constant__ unsigned c_table[TABLE_SIZE];
+
 __global__
 void trial_division_kernel(mpz_t n, unsigned *primes, bool *finished,
                                mpz_t *result) {
@@ -121,7 +123,7 @@ void parallel_factorize_kernel(mpz_t n, unsigned *primes, bool *finished,
   const unsigned B_MAX = TABLE_SIZE;
 
   // try a variety of a values
-  mpz_set_lui(&a, 3);
+  mpz_set_lui(&a, (UL) tid);
 
   for (B = B_START; B < B_MAX; B ++) {
     unsigned it;
@@ -129,7 +131,7 @@ void parallel_factorize_kernel(mpz_t n, unsigned *primes, bool *finished,
 
     unsigned p_i;
     unsigned power;
-    unsigned prime_ul = (UL) primes[0];
+    unsigned prime_ul = (UL) c_table[0];
     mpz_set_lui(&e, (UL) 1);
     for (p_i = 0; prime_ul < B; p_i ++) {
 
@@ -142,7 +144,7 @@ void parallel_factorize_kernel(mpz_t n, unsigned *primes, bool *finished,
       mpz_mult(&tmp_2, &tmp, &e); // tmp_2 = tmp * e
       mpz_set(&e, &tmp_2);        // e = tmp_2
 
-      prime_ul = primes[p_i + 1];
+      prime_ul = c_table[p_i + 1];
     }
 
     if (mpz_equal(&e, &MPZ_ONE)) continue;
@@ -203,11 +205,8 @@ int parallel_factorize(mpz_t n, unsigned *h_table, unsigned num_primes,
   /* move prime table to the gpu */
   unsigned *d_table;
   printf("Transferring table to the gpu... "); fflush(stdout);
-  if ((cudaSuccess != cudaMalloc((void **) &d_table,
-                                 num_primes * sizeof(unsigned))) ||
-      (cudaSuccess != cudaMemcpy((void *) d_table, (void *) h_table,
-                                 num_primes * sizeof(unsigned),
-                                 cudaMemcpyHostToDevice))) {
+  if (cudaSuccess != cudaMemcpyToSymbol(c_table, h_table,
+                                        num_primes * sizeof(unsigned))) {
     fprintf(stderr, "Unable to allocate device prime table!\n");
     return -1;
   }
@@ -232,7 +231,6 @@ int parallel_factorize(mpz_t n, unsigned *h_table, unsigned num_primes,
     return -1;
   }
 
-  cudaFree(d_table);
   cudaFree(d_result);
   cudaFree(d_finished);
 
