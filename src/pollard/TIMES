@@ -70,3 +70,16 @@ Why are we bounded by 2 threads per block?
   Factoring 0x1def: (in 71887 us) 4f
   Factoring 0x531adf: (in 117544 us) ab5
   Factoring 0x12B1F259795: (in 2250395 us) 721f7
+
+11:44 am, bitches.
+  $ ./gpu 1def 531adf 12B1F259795 89FD383381B 3CF5F89ED5F5 600FF385C031 878D4C7D68E9 B8C8CBD2DAEE7D 6926C73F919FA3E7
+  Generating prime table... done!
+  Factoring 0x1def: (in 249676 us) 4f
+  Factoring 0x531adf: (in 461650 us) ab5
+  Factoring 0x12B1F259795: (in 740693 us) 721f7
+  Factoring 0x89FD383381B: (in 1008644 us) 7a3d0d
+  Factoring 0x3CF5F89ED5F5: (in 5758910 us) 4f37ad
+  Factoring 0x600FF385C031: (in 28797009 us) 605119
+  Factoring 0x878D4C7D68E9: (in 2409094 us) ca1e31
+  Factoring 0xB8C8CBD2DAEE7D: (in 14683225 us) d978d0b
+  Factoring 0x6926C73F919FA3E7: (in 5960449 us) dcd39125

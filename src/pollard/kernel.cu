@@ -6,7 +6,7 @@
 #include <time.h>
 #include <sys/time.h>
 
-#define NUM_BLOCKS 1024
+#define NUM_BLOCKS 64
 #define THREADS_PER_BLOCK 32
 
 __constant__ unsigned c_table[TABLE_SIZE];
@@ -19,7 +19,7 @@ void parallel_factorize_kernel(mpz_t n, unsigned *primes, volatile bool *finishe
   const unsigned threads = gridDim.x * blockDim.x;
   // unsigned i = blockIdx.x * blockDim.x;
 
-  const unsigned max_it = 10000;
+  const unsigned max_it = 320000;
 
   const unsigned b_start = B_START + bid;//bid * blockDim.x / max_it;
   const unsigned b_inc = gridDim.x;//threads / max_it;
