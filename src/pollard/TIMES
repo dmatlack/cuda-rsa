@@ -1,0 +1,12 @@
+ At   | CPU/GPU            | Number                    | Time (s)
+------+--------------------+---------------------------+-----------
+ 3:12 | cuda bullshit 1024 | 0x1def                    | 3.838
+ 3:12 | cuda bullshit 1024 | 0x531adf                  | 39.383
+ 3:25 | cuda bullshit 1024 | 0x1def                    | 2.3985
+ 3:25 | cuda bullshit 1024 | 0x531adf                  | 39.244
+
+ 
+Talk about how we chose # of blocks and # threads per block (and how it
+changes for certain numbers).
+
+Why are we bounded by 2 threads per block?
