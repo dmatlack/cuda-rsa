@@ -120,30 +120,32 @@ void parallel_factorize_kernel(mpz_t n, unsigned *primes, bool *finished,
   unsigned B;
   const unsigned B_MAX = TABLE_SIZE;
 
-  for (B = B_START; B < B_MAX; B *= 2) {
+  // try a variety of a values
+  mpz_set_lui(&a, 3);
+
+  for (B = B_START; B < B_MAX; B ++) {
     unsigned it;
     unsigned max_it = 80;
+
     unsigned p_i;
-
+    unsigned power;
+    unsigned prime_ul = (UL) primes[0];
     mpz_set_lui(&e, (UL) 1);
-
-    for (p_i = tid; primes[p_i] < B; p_i += threads) {
-      unsigned prime_ul = (UL) primes[p_i];
+    for (p_i = 0; prime_ul < B; p_i ++) {
 
       mpz_set_lui(&p, prime_ul);
 
-      mpz_set_lui(&tmp_2, (UL) (log((double) B) / log((double) prime_ul)));
+      power = (unsigned) (log((double) B) /
+                          log((double) prime_ul));
 
-      // tmp_2 = floor(log b / log p)
-      mpz_powmod(&tmp, &p, &tmp_2, &n); // tmp = (p ** tmp_2) % n
-      mpz_mult(&tmp_2, &tmp, &e);       // tmp_2 = tmp * e
-      mpz_set(&e, &tmp_2);              // e = tmp_2
+      mpz_pow(&tmp, &p, power);     // tmp = (p ** pow)
+      mpz_mult(&tmp_2, &tmp, &e); // tmp_2 = tmp * e
+      mpz_set(&e, &tmp_2);        // e = tmp_2
+
+      prime_ul = primes[p_i + 1];
     }
 
     if (mpz_equal(&e, &MPZ_ONE)) continue;
-
-    // try a variety of a values
-    mpz_set_lui(&a, 2 + tid);
 
     for (it = 0; it < max_it; it ++) {
       // printf("it = %d\n", it);
@@ -175,7 +177,7 @@ void parallel_factorize_kernel(mpz_t n, unsigned *primes, bool *finished,
       }
 
       // otherwise get a new value for a
-#if 1
+#if 0
       mpz_mult(&tmp, &a, &a);               // tmp = a ** 2
       mpz_set_lui(&a, (UL) (i + it + tid)); // a = i + it + tid
       mpz_add(&tmp_2, &tmp, &a);            // tmp_2 = &tmp + a
