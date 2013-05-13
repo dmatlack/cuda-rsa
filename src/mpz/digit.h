@@ -290,6 +290,30 @@ __device__ __host__ inline digit_t digits_add(digit_t *sum, unsigned sum_num_dig
   return carry;
 }
 
+__device__ __host__ inline void digits_mult_u(digit_t product[DIGITS_CAPACITY],
+                                              digit_t op[DIGITS_CAPACITY],
+                                              digit_t d) {
+  unsigned i, j;
+  unsigned num_digits = DIGITS_CAPACITY/2;
+
+  /* zero out product */
+  for (i = 0; i < 2*num_digits; i++) {
+    product[i] = 0;
+  }
+
+  i = 0;
+  for (j = 0; j < num_digits; j++) {
+    unsigned k = i + j;
+    digit_t carry = 0;
+    digit_t prod;
+
+    prod = mult(d, op[j], &carry);
+
+    digits_add_across(product + k,     2*num_digits - k,     prod);
+    digits_add_across(product + k + 1, 2*num_digits - k - 1, carry);
+  }
+}
+
 /**
  * @brief Compute product = op1 * op2 using the Long Multiplication
  * (Grade School Multiplication) Aglorithm.
