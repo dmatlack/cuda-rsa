@@ -19,7 +19,7 @@ void parallel_factorize_kernel(mpz_t n, unsigned *primes, volatile bool *finishe
   const unsigned bid = blockIdx.x;
   // unsigned i = blockIdx.x * blockDim.x;
 
-  const unsigned max_it = 300000000 / threads;
+  const unsigned max_it = 400000 / threads;
 
   const unsigned b_start = B_START + bid;//bid * blockDim.x / max_it;
   const unsigned b_inc = gridDim.x;//threads / max_it;
