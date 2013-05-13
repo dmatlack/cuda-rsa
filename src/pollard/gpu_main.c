@@ -49,7 +49,7 @@ int serial_factorize(mpz_t n, unsigned *primes, unsigned num_primes,
       mpz_set_lui(&p, prime_ul);
 
       unsigned pow = (unsigned) (log((double) B) /
-                                 log((double) prime_ul)));
+                                 log((double) prime_ul));
 
       mpz_pow(&tmp, &p, pow);     // tmp = (p ** pow)
       mpz_mult(&tmp_2, &tmp, &e); // tmp_2 = tmp * e
