@@ -6,8 +6,8 @@
 #include <time.h>
 #include <sys/time.h>
 
-#define NUM_BLOCKS 1
-#define THREADS_PER_BLOCK 1
+#define NUM_BLOCKS 2048
+#define THREADS_PER_BLOCK 2
 
 __constant__ unsigned c_table[TABLE_SIZE];
 
@@ -105,6 +105,7 @@ __global__
 void parallel_factorize_kernel(mpz_t n, unsigned *primes, bool *finished,
                                mpz_t *result) {
   unsigned tid = blockDim.x * blockIdx.x + threadIdx.x;
+  unsigned bid = blockIdx.x;
   unsigned threads = gridDim.x * blockDim.x;
   // unsigned i = blockIdx.x * blockDim.x;
 
@@ -180,7 +181,7 @@ void parallel_factorize_kernel(mpz_t n, unsigned *primes, bool *finished,
       mpz_add(&tmp_2, &tmp, &a);            // tmp_2 = &tmp + a
       mpz_div(&tmp, &a, &tmp_2, &n);        // a = tmp_2 % n
 #else
-      mpz_addeq_i(&a, threads);       // a += 1
+      mpz_addeq_i(&a, threads * max_it);       // a += 1
 #endif
     }
   }
