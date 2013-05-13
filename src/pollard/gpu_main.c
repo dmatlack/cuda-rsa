@@ -135,9 +135,13 @@ int main(int argc, char *argv[]) {
 
   mpz_t n;
   mpz_t factor;
+  mpz_t mod;
+  mpz_t div;
 
   mpz_init(&factor);
   mpz_init(&n);
+  mpz_init(&div);
+  mpz_init(&mod);
 
   for (; (int) num_to_factor < argc; num_to_factor ++) {
 
@@ -151,7 +155,18 @@ int main(int argc, char *argv[]) {
 
     char factor_str[1024];
     mpz_get_str(&factor, factor_str, 1024);
-    printf("%s\n", factor_str);
+    printf("%s ", factor_str);
+
+    mpz_div(&div, &mod, &n, &factor);
+    mpz_set_lui(&div, 0);
+    if (mpz_equal(&mod, &div)) { // mod == 0
+      printf("correct");
+    }
+    else {
+      printf("incorrect!");
+    }
+
+    printf("\n");
   }
 
   free(h_table);
