@@ -52,11 +52,13 @@ __device__ __host__ inline char* mpz_get_str(mpz_t *mpz, char *str, int bufsize)
         (__mpz)->sign != MPZ_NONNEGATIVE) {                             \
       printf("MPZ Sign Error at %s:%d: Value is 0 but sign is %d.\n",   \
              __func__, __LINE__, (__mpz)->sign);                        \
+      assert(0);\
     }                                                                   \
     if ((__mpz)->sign != MPZ_NEGATIVE &&                                \
         (__mpz)->sign != MPZ_NONNEGATIVE) {                             \
       printf("MPZ Sign Error at %s:%d: Invalid sign %d.\n",             \
              __func__, __LINE__, (__mpz)->sign);                        \
+      assert(0);\
     }                                                                   \
   } while (0)
 #else
@@ -718,6 +720,10 @@ __device__ __inline__ void mpz_addeq_i(mpz_t *a, int i) {
  */
 __device__ __inline__ void mpz_mult_u(mpz_t *result, mpz_t *a, unsigned i) {
   digits_mult_u(result->digits, a->digits, i);
+
+  result->sign = a->sign;
+  if (0 == i) result->sign = MPZ_NONNEGATIVE;
+
   CHECK_SIGN(result);
 }
 
