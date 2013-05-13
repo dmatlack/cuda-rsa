@@ -20,7 +20,7 @@ typedef unsigned digit_t;
 
 __device__ __host__ inline void digits_print(digit_t *digits,
                                             unsigned num_digits) {
-  unsigned i; 
+  unsigned i;
 
   printf("{ ");
   for (i = 0; i < num_digits; i++) {
@@ -55,14 +55,14 @@ __device__ __host__ inline int digits_bit_at(digit_t *digits, unsigned bit_offse
   return bit_at(digits[digit_index], bit_index);
 }
 
-__device__ __host__ inline void digits_set_bit(digit_t *digits, 
+__device__ __host__ inline void digits_set_bit(digit_t *digits,
                                               unsigned bit_offset,
                                               unsigned bit) {
   unsigned digit_index = bit_offset / LOG2_DIGIT_BASE;
   unsigned bit_index = bit_offset % LOG2_DIGIT_BASE;
   unsigned bit_mask = 1 << bit_index;
   digit_t d = digits[digit_index];
-  
+
   digits[digit_index] = (d & ~bit_mask) | (bit << bit_index);
 }
 
@@ -76,7 +76,7 @@ __device__ __host__ inline int bits_is_zero(digit_t *digits,
     digit_t d = digits[i];
 
     /* If the digit index (i) is equal to the bit_offset (in other words,
-     * this is the first digit we need to check), and the bit_index is 
+     * this is the first digit we need to check), and the bit_index is
      * not 0 (the first bit we need to check is in the middle of the digit),
      * then we have to manually check each bit. */
     if (i == bit_offset && 0 != bit_index) {
@@ -154,18 +154,51 @@ __device__ __host__ inline unsigned digits_count(digit_t digits[DIGITS_CAPACITY]
 __device__ __host__ inline int digits_compare(digit_t *digits1, unsigned num_d1,
                                        digit_t *digits2, unsigned num_d2) {
   unsigned max_digits = (num_d1 > num_d2) ? num_d1 : num_d2;
-  unsigned i;
+  int i;
 
   /* Iterate backwards so that we look at the most significant digits first */
-  for (i = max_digits - 1; i < max_digits; i--) {
-    digit_t d1 = (i < num_d1) ? digits1[i] : 0;
-    digit_t d2 = (i < num_d2) ? digits2[i] : 0;
+  for (i = max_digits - 1; i >= 0; i--) {
+    digit_t d1 = ((unsigned) i < num_d1) ? digits1[i] : 0;
+    digit_t d2 = ((unsigned) i < num_d2) ? digits2[i] : 0;
 
     if (d1 < d2) return -1;
     if (d1 > d2) return  1;
   }
 
   return 0;
+}
+
+/**
+ * @brief Compare a to one.
+ */
+__device__ __host__ inline int digits_equal_one(digit_t *digits, unsigned capacity) {
+  if (digits[capacity - 1] != 1) {
+    return false;
+  }
+
+  int i;
+  for (i = capacity - 2; i >= 0; i --) {
+    if (digits[i] != 0) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * @brief Compare a to one.
+ */
+__device__ __host__ inline int digits_gt_one(digit_t *digits, unsigned capacity) {
+  if (digits[capacity - 1] > 1) {
+    return true;
+  }
+  int i;
+  for (i = capacity - 2; i >= 0; i --) {
+    if (digits[i] != 0) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -189,8 +222,8 @@ __device__ __host__ inline void clip(unsigned long long value,
  */
 __device__ __host__ inline digit_t add(digit_t a, digit_t b,
                                 digit_t *carry) {
-  unsigned long long tmp = ((unsigned long long) a) + 
-                           ((unsigned long long) b) + 
+  unsigned long long tmp = ((unsigned long long) a) +
+                           ((unsigned long long) b) +
                            ((unsigned long long) *carry);
   digit_t result;
 
@@ -209,7 +242,7 @@ __device__ __host__ inline digit_t add(digit_t a, digit_t b,
  * @return The product (as well as the carry out).
  */
 __device__ __host__ inline digit_t mult(digit_t a, digit_t b, digit_t *carry) {
-  unsigned long long tmp = ((unsigned long long) a) * ((unsigned long long) b) + 
+  unsigned long long tmp = ((unsigned long long) a) * ((unsigned long long) b) +
                            ((unsigned long long) *carry);
   digit_t result;
 
@@ -368,8 +401,8 @@ __device__ __host__ inline void bits_lshift(digit_t *digits, unsigned capacity) 
   unsigned shift_out = 0;
 
   for (d_index = 0; d_index < capacity; d_index++) {
-    digit_t d = digits[d_index]; 
-    
+    digit_t d = digits[d_index];
+
     digits[d_index] = shift_out | (d << 1);
     shift_out = 1 & bit_at(d, LOG2_DIGIT_BASE - 1);
   }

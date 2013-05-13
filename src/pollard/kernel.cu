@@ -102,8 +102,8 @@ __global__
 void parallel_factorize_kernel(mpz_t n, unsigned *primes, bool *finished,
                                mpz_t *result) {
   unsigned tid = blockDim.x * blockIdx.x + threadIdx.x;
-  unsigned threads = gridDim.x * blockDim.x;
-  unsigned i = blockIdx.x * blockDim.x;
+  // unsigned threads = gridDim.x * blockDim.x;
+  // unsigned i = blockIdx.x * blockDim.x;
 
   mpz_t a, d, p, e, b, tmp, tmp_2, MPZ_ONE;
   mpz_init(&a);
@@ -203,7 +203,7 @@ int parallel_factorize(mpz_t n, unsigned *h_table, unsigned num_primes,
   size_t result_bytes = sizeof(mpz_t);
 
   /* move prime table to the gpu */
-  unsigned *d_table;
+  // unsigned *d_table;
   printf("Transferring table to the gpu... "); fflush(stdout);
   if (cudaSuccess != cudaMemcpyToSymbol(c_table, h_table,
                                         num_primes * sizeof(unsigned))) {
@@ -223,7 +223,7 @@ int parallel_factorize(mpz_t n, unsigned *h_table, unsigned num_primes,
   }
 
   parallel_factorize_kernel<<<blocks, threads_per_block>>>
-    (n, d_table, d_finished, d_result);
+    (n, NULL, d_finished, d_result);
 
   if (cudaSuccess != cudaMemcpy(factor, d_result, result_bytes,
                                 cudaMemcpyDeviceToHost)) {

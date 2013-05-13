@@ -330,7 +330,7 @@ int main(int argc, char **argv) {
   (void)argv;
   mpz_init(&mpz);
 
-  printf("sizeof(mpz_t) = %u\n", sizeof(mpz_t));
+  printf("sizeof(mpz_t) = %lu\n", sizeof(mpz_t));
 
   /******************************************************/
   /*  Unit Tests for MPZ Code                           */

@@ -352,6 +352,13 @@ __device__ __host__ inline int mpz_compare(mpz_t *a, mpz_t *b) {
 __device__ __host__ inline int mpz_equal(mpz_t *a, mpz_t *b) {
   return (mpz_compare(a, b) == 0);
 }
+/** @brief Return true if a == 1 */
+__device__ __host__ inline int mpz_equal_one(mpz_t *a) {
+  if (MPZ_NEGATIVE == a->sign) {
+    return false;
+  }
+  return digits_equal_one(a->digits, a->capacity);
+}
 /** @brief Return true if a < b */
 __device__ __host__ inline int mpz_lt(mpz_t *a, mpz_t *b) {
   return (mpz_compare(a, b) < 0);
@@ -363,6 +370,13 @@ __device__ __host__ inline int mpz_lte(mpz_t *a, mpz_t *b) {
 /** @brief Return true if a > b */
 __device__ __host__ inline int mpz_gt(mpz_t *a, mpz_t *b) {
   return (mpz_compare(a, b) > 0);
+}
+/** @brief Return true if a == 1 */
+__device__ __host__ inline int mpz_gt_one(mpz_t *a) {
+  if (MPZ_NEGATIVE == a->sign) {
+    return false;
+  }
+  return digits_gt_one(a->digits, a->capacity);
 }
 /** @brief Return true if a >= b */
 __device__ __host__ inline int mpz_gte(mpz_t *a, mpz_t *b) {
