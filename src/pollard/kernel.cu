@@ -105,42 +105,40 @@ __global__
 void parallel_factorize_kernel(mpz_t n, unsigned *primes, volatile bool *finished,
                                mpz_t *result) {
   const unsigned tid = blockDim.x * blockIdx.x + threadIdx.x;
-  //unsigned bid = blockIdx.x;
   const unsigned threads = gridDim.x * blockDim.x;
-  // unsigned i = blockIdx.x * blockDim.x;
-
+  int count = 0;
+  unsigned B;
+  const unsigned B_MAX = TABLE_SIZE;
+  unsigned it;
+  const unsigned max_it = 80;
+  unsigned p_i;
+  unsigned power;
+  unsigned prime_ul;
   mpz_t a, d, e, b, tmp;
+
   mpz_init(&a);
   mpz_init(&d);
   mpz_init(&e);
   mpz_init(&b);
   mpz_init(&tmp);
 
-  int count = 0;
-
-  unsigned B;
-  const unsigned B_MAX = TABLE_SIZE;
-
   // try a variety of a values
   mpz_set_lui(&a, (UL) tid + 2);
 
   for (B = B_START; B < B_MAX; B ++) {
-    unsigned it;
-    const unsigned max_it = 80;
 
-    unsigned p_i;
-    unsigned power;
-    unsigned prime_ul = (UL) c_table[0];
+    /* Compute e as a product of prime powers */
+    prime_ul = (UL) c_table[0];
     mpz_set_lui(&e, (UL) 1);
     for (p_i = 0; prime_ul < B; p_i ++) {
       if (*finished) return;
-      power = (unsigned) (log((double) B) /
-                          log((double) prime_ul));
 
-      mpz_mult_u(&tmp, &e, (unsigned) pow((double) prime_ul, (double) power)); // tmp = e * p ** power
+      power = (unsigned) (log((double) B) / log((double) prime_ul));
+      mpz_mult_u(&tmp, &e, (unsigned) pow((double) prime_ul, (double) power));
+
       if (*finished) return;
-      mpz_set(&e, &tmp);        // e = tmp
 
+      mpz_set(&e, &tmp);
       prime_ul = c_table[p_i + 1];
     }
 
