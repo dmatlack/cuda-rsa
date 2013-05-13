@@ -6,15 +6,12 @@
 #define NUM_BLOCKS 1
 #define THREADS_PER_BLOCK 1
 
-#define B_START 2
-#define TABLE_SIZE (200 * 1000 * 1000)
-
 __global__
 void parallel_factorize_kernel(UL N, unsigned *primes, bool *finished,
                                mpz_t *result) {
   unsigned tid = blockDim.x * blockIdx.x + threadIdx.x;
   unsigned threads = gridDim.x * blockDim.x;
-  unsigned i = blockIdx.x * blockDim.x;
+  // unsigned i = blockIdx.x * blockDim.x;
 
   mpz_t n, a, d, p, e, b, tmp, tmp_2, MPZ_ONE;
   mpz_init(&n);
@@ -61,10 +58,10 @@ void parallel_factorize_kernel(UL N, unsigned *primes, bool *finished,
     // try a variety of a values
     mpz_set_lui(&a, 2 + tid);
     for (it = 0; it < max_it; it ++) {
-      printf("it = %d\n", it);
+      // printf("it = %d\n", it);
       count ++;
       if (*finished) {
-        printf("Ran in %d iterations.\n", count);
+        // printf("Ran in %d iterations.\n", count);
         return;
       }
 
@@ -73,7 +70,7 @@ void parallel_factorize_kernel(UL N, unsigned *primes, bool *finished,
       if (mpz_lt(&MPZ_ONE, &d)) {
         *result = d;
         *finished = true;
-        printf("Ran in %d iterations.\n", count);
+        // printf("Ran in %d iterations.\n", count);
         return;
       }
 
@@ -85,7 +82,7 @@ void parallel_factorize_kernel(UL N, unsigned *primes, bool *finished,
       if (mpz_lt(&MPZ_ONE, &d) && mpz_lt(&d, &n)) {
         *result = d;
         *finished = true;
-        printf("Ran in %d iterations.\n", count);
+        // printf("Ran in %d iterations.\n", count);
         return;
       }
 
@@ -99,15 +96,28 @@ void parallel_factorize_kernel(UL N, unsigned *primes, bool *finished,
     }
   }
   // couldn't find anything... :(
-  printf("Ran in %d iterations (and failed).\n", count);
+  // printf("Ran in %d iterations (and failed).\n", count);
 }
 
-int factorize(UL n, unsigned *primes, mpz_t *factor) {
+int parallel_factorize(UL n, unsigned *h_table, unsigned num_primes, mpz_t *factor) {
   unsigned blocks = NUM_BLOCKS;
   unsigned threads_per_block = THREADS_PER_BLOCK;
   //unsigned threads = blocks * threads_per_block;
 
   size_t result_bytes = sizeof(mpz_t);
+
+  /* move prime table to the gpu */
+  unsigned *d_table;
+  printf("Transferring table to the gpu... "); fflush(stdout);
+  if ((cudaSuccess != cudaMalloc((void **) &d_table,
+                                 num_primes * sizeof(unsigned))) ||
+      (cudaSuccess != cudaMemcpy((void *) d_table, (void *) h_table,
+                                 num_primes * sizeof(unsigned),
+                                 cudaMemcpyHostToDevice))) {
+    fprintf(stderr, "Unable to allocate device prime table!\n");
+    return -1;
+  }
+  printf("done!\n"); fflush(stdout);
 
   mpz_t *d_result;
   bool *d_finished;
@@ -120,7 +130,7 @@ int factorize(UL n, unsigned *primes, mpz_t *factor) {
   }
 
   parallel_factorize_kernel<<<blocks, threads_per_block>>>
-    (n, primes, d_finished, d_result);
+    (n, d_table, d_finished, d_result);
 
   if (cudaSuccess != cudaMemcpy(factor, d_result, result_bytes,
                                 cudaMemcpyDeviceToHost)) {
@@ -128,7 +138,7 @@ int factorize(UL n, unsigned *primes, mpz_t *factor) {
     return -1;
   }
 
-  cudaFree(primes);
+  cudaFree(d_table);
   cudaFree(d_result);
   cudaFree(d_finished);
 
@@ -145,35 +155,20 @@ void get_prime_table(unsigned *table, unsigned n) {
   }
 }
 
-int generate_prime_table(unsigned **d_table) {
+int generate_prime_table(unsigned **h_table, unsigned num_primes) {
   /* approximately the number of unsigned 32-bit primes       */
   /* (actual number is 203,280,221)                           */
   /* paper claimed to use ~170,000,000 primes for experiments */
   /* may want to write this to disk at some point...          */
-  unsigned primes = TABLE_SIZE;
-  unsigned *h_table = (unsigned *) malloc(primes * sizeof(unsigned));
-  if (NULL == h_table) {
+  *h_table = (unsigned *) malloc(num_primes * sizeof(unsigned));
+  if (NULL == *h_table) {
     fprintf(stderr, "Unable to allocate host prime table!\n");
     return -1;
   }
 
   printf("Generating prime table... "); fflush(stdout);
-  get_prime_table(h_table, primes);
+  get_prime_table(*h_table, num_primes);
   printf("done!\n"); fflush(stdout);
-
-  /* move prime table to the gpu */
-  printf("Transferring table to the gpu... "); fflush(stdout);
-  if ((cudaSuccess != cudaMalloc((void **) d_table,
-                                 primes * sizeof(unsigned))) ||
-      (cudaSuccess != cudaMemcpy((void *) *d_table, (void *) h_table,
-                                 primes * sizeof(unsigned),
-                                 cudaMemcpyHostToDevice))) {
-    fprintf(stderr, "Unable to allocate device prime table!\n");
-    return -1;
-  }
-  printf("done!\n"); fflush(stdout);
-
-  free(h_table);
 
   return 0;
 }

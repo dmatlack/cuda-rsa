@@ -23,7 +23,7 @@ LDFLAGS = -L/usr/local/cuda/lib64/ -L../primegen-0.97/lib
 # Files we don't compile with directly, but we want Make to know that we
 # depend on them
 ###
-OTHER_FILES = kernel.h
+OTHER_FILES = kernel.h ../mpz/*.h
 
 default: dirs gpu
 
