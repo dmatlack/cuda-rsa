@@ -21,5 +21,4 @@ obj/
 src/mpz/cpu
 src/mpz/gpu
 src/pollard/gpu
-src/pollard_internet
 mpz_test
