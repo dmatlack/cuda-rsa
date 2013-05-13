@@ -172,12 +172,12 @@ __device__ __host__ inline int digits_compare(digit_t *digits1, unsigned num_d1,
  * @brief Compare a to one.
  */
 __device__ __host__ inline int digits_equal_one(digit_t *digits, unsigned capacity) {
-  if (digits[capacity - 1] != 1) {
+  if (digits[0] != 1) {
     return false;
   }
 
   int i;
-  for (i = capacity - 2; i >= 0; i --) {
+  for (i = 1; i < capacity; i ++) {
     if (digits[i] != 0) {
       return false;
     }
@@ -189,11 +189,11 @@ __device__ __host__ inline int digits_equal_one(digit_t *digits, unsigned capaci
  * @brief Compare a to one.
  */
 __device__ __host__ inline int digits_gt_one(digit_t *digits, unsigned capacity) {
-  if (digits[capacity - 1] > 1) {
+  if (digits[0] > 1) {
     return true;
   }
   int i;
-  for (i = capacity - 2; i >= 0; i --) {
+  for (i = 1; i < capacity; i ++) {
     if (digits[i] != 0) {
       return true;
     }
