@@ -132,6 +132,14 @@ __device__ __host__ inline void mpz_set_lui(mpz_t *mpz, unsigned long z) {
 }
 
 /**
+ * @brief Set the mpz integer to the provided integer.
+ */
+__device__ __host__ inline void mpz_set_ui(mpz_t *mpz, unsigned z) {
+  mpz->sign = MPZ_NONNEGATIVE;
+  digits_set_lui(mpz->digits, z);
+}
+
+/**
  * @brief Set the mpz integer based on the provided (hex) string.
  */
 __device__ __host__ inline void mpz_set_str(mpz_t *mpz, const char *user_str) {
@@ -316,6 +324,18 @@ __device__ __host__ inline void mpz_sub(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
 }
 
 /**
+ * @brief Perform op1 -= op2.
+ *
+ * @warning Assumes that all mpz_t parameters have been initialized.
+ * @warning Assumes op1 != op2
+ */
+__device__ __host__ inline void mpz_subeq(mpz_t *op1, mpz_t *op2) {
+  mpz_negate(op2);
+  mpz_addeq(op1, op2);
+  mpz_negate(op2);
+}
+
+/**
  * @brief Perform dst := op1 * op2.
  *
  * @warning Assumes that all mpz_t parameters have been initialized.
@@ -492,8 +512,8 @@ __device__ __host__ inline void mpz_bit_lshift(mpz_t *mpz) {
   }
 }
 
-__device__ __host__ inline void mpz_div_tmp(mpz_t *q, mpz_t *r, mpz_t *n,
-                                            mpz_t *d, mpz_t *tmp) {
+__device__ __host__ inline void mpz_div(mpz_t *q, mpz_t *r, mpz_t *n,
+                                            mpz_t *d) {
   unsigned n_digit_count = digits_count(n->digits);
   unsigned num_bits;
   int i;
@@ -502,8 +522,8 @@ __device__ __host__ inline void mpz_div_tmp(mpz_t *q, mpz_t *r, mpz_t *n,
 
   num_bits = n_digit_count * LOG2_DIGIT_BASE;
 
-  mpz_set_i(q, 0);
-  mpz_set_i(r, 0);
+  mpz_set_ui(q, 0);
+  mpz_set_ui(r, 0);
 
   n->sign = MPZ_NONNEGATIVE;
   d->sign = MPZ_NONNEGATIVE;
@@ -523,8 +543,7 @@ __device__ __host__ inline void mpz_div_tmp(mpz_t *q, mpz_t *r, mpz_t *n,
       // if (r >= d)
       if (mpz_gte(r, d)) {
         // r = r - d
-        mpz_sub(tmp, r, d);
-        mpz_set(r, tmp);
+        mpz_subeq(r, d);
 
         // q(i) = 1
         //printf("Setting bit %d of q to 1\n", i);
@@ -542,7 +561,7 @@ __device__ __host__ inline void mpz_div_tmp(mpz_t *q, mpz_t *r, mpz_t *n,
   }
   else {
     // quotient = 0
-    mpz_set_i(q, 0);
+    mpz_set_ui(q, 0);
     // remainder = numerator
     mpz_set(r, n);
   }
@@ -554,15 +573,6 @@ __device__ __host__ inline void mpz_div_tmp(mpz_t *q, mpz_t *r, mpz_t *n,
   CHECK_SIGN(r);
   CHECK_SIGN(n);
   CHECK_SIGN(d);
-}
-
-/**
- * @brief Compute the quotient and remainder of n / d.
- */
-__device__ __host__ inline void mpz_div(mpz_t *q, mpz_t *r, mpz_t *n, mpz_t *d) {
-  mpz_t tmp;
-  mpz_init(&tmp);
-  mpz_div_tmp(q, r, n, d, &tmp);
 }
 
 /**
@@ -579,13 +589,12 @@ __device__ __host__ inline void mpz_div(mpz_t *q, mpz_t *r, mpz_t *n, mpz_t *d) 
  */
 __device__ __inline__ void mpz_gcd_tmp(mpz_t *gcd, mpz_t *op1, mpz_t *op2,
                                        // tmps
-                                       mpz_t *tmp1, mpz_t *tmp2, 
-                                       mpz_t *tmp3, mpz_t *tmp4) {
+                                       mpz_t *tmp1, mpz_t *tmp2,
+                                       mpz_t *tmp3) {
   mpz_t *a = gcd;
   mpz_t *b = tmp1;
   mpz_t *mod = tmp2;
   mpz_t *quo = tmp3;
-  mpz_t *tmp = tmp4;
 
   int compare = mpz_compare(op1, op2);
 
@@ -593,7 +602,7 @@ __device__ __inline__ void mpz_gcd_tmp(mpz_t *gcd, mpz_t *op1, mpz_t *op2,
   mpz_set(b, (compare > 0) ? op2 : op1);
 
   while (!digits_is_zero(b->digits, b->capacity)) {
-    mpz_div_tmp(quo, mod, a, b, tmp);
+    mpz_div(quo, mod, a, b);
     mpz_set(a, b);
     mpz_set(b, mod);
   }
@@ -603,14 +612,12 @@ __device__ __inline__ void mpz_gcd(mpz_t *gcd, mpz_t *op1, mpz_t *op2) {
   mpz_t tmp1;
   mpz_t tmp2;
   mpz_t tmp3;
-  mpz_t tmp4;
 
   mpz_init(&tmp1);
   mpz_init(&tmp2);
   mpz_init(&tmp3);
-  mpz_init(&tmp4);
 
-  mpz_gcd_tmp(gcd, op1, op2, &tmp1, &tmp2, &tmp3, &tmp4);
+  mpz_gcd_tmp(gcd, op1, op2, &tmp1, &tmp2, &tmp3);
 }
 
 /**
@@ -629,17 +636,17 @@ __device__ __inline__ void mpz_powmod_tmp(mpz_t *result, mpz_t *base,
                                           mpz_t *exp, mpz_t *mod,
                                           // temps
                                           mpz_t *tmp1, mpz_t *tmp2,
-                                          mpz_t *tmp3, mpz_t *tmp4) {
+                                          mpz_t *tmp3) {
   unsigned iteration;
 
-  mpz_t *b = tmp4;
+  mpz_t *b = tmp3;
 
   // result = 1
-  mpz_set_i(result, 1);
+  mpz_set_ui(result, 1);
 
   // _base = base % mod
   mpz_set(tmp1, base);
-  mpz_div_tmp(tmp2, b, tmp1, mod, tmp3);
+  mpz_div(tmp2, b, tmp1, mod);
 
   iteration = 0;
   while (!bits_is_zero(exp->digits, exp->capacity, iteration)) {
@@ -647,7 +654,7 @@ __device__ __inline__ void mpz_powmod_tmp(mpz_t *result, mpz_t *base,
     if (digits_bit_at(exp->digits, iteration) == 1) {
       // result = (result * base) % mod
       mpz_mult(tmp1, result, b);
-      mpz_div_tmp(tmp2, result, tmp1, mod, tmp3);
+      mpz_div(tmp2, result, tmp1, mod);
     }
 
     // binary_exp = binary_exp >> 1
@@ -656,7 +663,7 @@ __device__ __inline__ void mpz_powmod_tmp(mpz_t *result, mpz_t *base,
     // base = (base * base) % mod
     mpz_set(tmp1, b);
     mpz_mult(tmp2, b, tmp1);
-    mpz_div_tmp(tmp1, b, tmp2, mod, tmp3);
+    mpz_div(tmp1, b, tmp2, mod);
   }
 }
 
@@ -665,14 +672,12 @@ __device__ __inline__ void mpz_powmod(mpz_t *result, mpz_t *base,
   mpz_t tmp1;
   mpz_t tmp2;
   mpz_t tmp3;
-  mpz_t tmp4;
 
   mpz_init(&tmp1);
   mpz_init(&tmp2);
   mpz_init(&tmp3);
-  mpz_init(&tmp4);
 
-  mpz_powmod_tmp(result, base, exp, mod, &tmp1, &tmp2, &tmp3, &tmp4);
+  mpz_powmod_tmp(result, base, exp, mod, &tmp1, &tmp2, &tmp3);
 }
 
 
@@ -684,7 +689,7 @@ __device__ __inline__ void mpz_pow(mpz_t *result, mpz_t *base, unsigned exponent
   mpz_init(&tmp);
 
   // result = 1
-  mpz_set_i(result, 1);
+  mpz_set_ui(result, 1);
   for (i = 0; i < exponent; i++) {
     // result *= base
     mpz_mult(&tmp, result, base);
@@ -713,6 +718,7 @@ __device__ __inline__ void mpz_addeq_i(mpz_t *a, int i) {
  */
 __device__ __inline__ void mpz_mult_u(mpz_t *result, mpz_t *a, unsigned i) {
   digits_mult_u(result->digits, a->digits, i);
+  CHECK_SIGN(result);
 }
 
 #endif /* __418_MPZ_H__ */

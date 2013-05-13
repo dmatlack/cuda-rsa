@@ -123,7 +123,7 @@ void parallel_factorize_kernel(mpz_t n, unsigned *primes, volatile bool *finishe
   mpz_init(&tmp);
 
   // try a variety of a values
-  mpz_set_lui(&a, (UL) tid + 2);
+  mpz_set_ui(&a, (UL) tid + 2);
 
   for (B = B_START; B < B_MAX; B ++) {
 
@@ -143,7 +143,7 @@ void parallel_factorize_kernel(mpz_t n, unsigned *primes, volatile bool *finishe
     }
 
     if (mpz_equal_one(&e)) continue;
-    if (*finished) return;
+    // if (*finished) return;
 
     for (it = 0; it < max_it; it ++) {
       // printf("it = %d\n", it);
@@ -153,18 +153,18 @@ void parallel_factorize_kernel(mpz_t n, unsigned *primes, volatile bool *finishe
 
       // check for a freebie
       mpz_gcd(&d, &a, &n);
-      if (*finished) return;
+      // if (*finished) return;
       if (mpz_gt_one(&d)) {
         *result = d;
         *finished = true;
       }
-      if (*finished) return;
+      // if (*finished) return;
 
       mpz_powmod(&b, &a, &e, &n);  // b = (a ** e) % n
       mpz_addeq_i(&b, -1); // b -= 1
       mpz_gcd(&d, &b, &n);       // d = gcd(tmp, n)
 
-      if (*finished) return;
+      // if (*finished) return;
 
       // success!
       if (mpz_gt_one(&d) && mpz_lt(&d, &n)) {
@@ -172,7 +172,7 @@ void parallel_factorize_kernel(mpz_t n, unsigned *primes, volatile bool *finishe
         *finished = true;
       }
 
-      if (*finished) return;
+      // if (*finished) return;
       // otherwise get a new value for a
 #if 0
       mpz_mult(&tmp, &a, &a);               // tmp = a ** 2
