@@ -648,4 +648,11 @@ __device__ __inline__ void mpz_addeq_i(mpz_t *a, int i) {
   }
 }
 
+/**
+ * @brief Compute result = a * i
+ */
+__device__ __inline__ void mpz_mult_u(mpz_t *result, mpz_t *a, unsigned i) {
+  digits_mult_u(result->digits, a->digits, i);
+}
+
 #endif /* __418_MPZ_H__ */

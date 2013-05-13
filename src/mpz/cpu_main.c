@@ -7,6 +7,30 @@
 #include <time.h>
 #include <sys/time.h>
 
+void test_mult_u(const char *op1_str, unsigned i,
+                  const char *correct_str) {
+  char got_str[1024];
+  mpz_t a;
+  mpz_t b;
+
+  mpz_init(&a);
+  mpz_init(&b);
+
+  mpz_set_str(&a, op1_str);
+
+  mpz_mult_u(&b, &a, i);
+
+  mpz_get_str(&b, got_str, 1024);
+
+  if (!strcmp(correct_str, got_str)) {
+    printf(".");
+  }
+  else {
+    printf("\nFAIL: %s * %d = [Expected: %s, Got: %s]\n",
+           op1_str, i, correct_str, got_str);
+  }
+}
+
 void test_addeq_i(const char *op1_str, int i,
                   const char *correct_str) {
   char got_str[1024];
@@ -476,6 +500,12 @@ int main(int argc, char **argv) {
 
   test_addeq_i("1234", 2, "1236");
   test_addeq_i("1234", -2, "1232");
+
+  test_mult_u("6", 2, "c");
+  test_mult_u("a", 1, "a");
+  test_mult_u("a", 1, "a");
+  test_mult_u("3adefa4523487ac253", 837,
+              "c07b08440c5bf95d595f");
 
   gettimeofday(&end, NULL);
 
