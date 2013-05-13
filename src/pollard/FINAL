@@ -1,0 +1,19 @@
+Background
+  - description pollard's p-1 algorithm (David)
+
+Approach
+  - mpz (David)
+    -> talk about using base 10 =(
+    -> talk about things we wanted to implement (karatsuba)
+    -> talk about good algorithms used (exponentiation by squaring)
+  - CUDAing pollard (AJ)
+  - Tweaking to get better performance (AJ)
+
+Results
+  - How are we gaging performance (AJ)
+  - describe GPU v CPU graph (David)
+  - describe GPU v GMP graph (AJ)
+  - describe results relative to lin.pdf (David)
+  - Are the results of the lin paper valid? (AJ)
+
+
