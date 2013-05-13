@@ -7,6 +7,26 @@
 #include <time.h>
 #include <sys/time.h>
 
+void test_addeq_i(const char *op1_str, int i,
+                  const char *correct_str) {
+  char got_str[1024];
+  mpz_t a;
+
+  mpz_init(&a);
+  mpz_set_str(&a, op1_str);
+
+  mpz_addeq_i(&a, i);
+
+  mpz_get_str(&a, got_str, 1024);
+
+  if (!strcmp(correct_str, got_str)) {
+    printf(".");
+  }
+  else {
+    printf("\nFAIL: %s + %d = [Expected: %s, Got: %s]\n",
+           op1_str, i, correct_str, got_str);
+  }
+}
 
 void test_add(const char * op1_str, const char *op2_str,
               const char *correct_str) {
@@ -310,6 +330,8 @@ int main(int argc, char **argv) {
   (void)argv;
   mpz_init(&mpz);
 
+  printf("sizeof(mpz_t) = %u\n", sizeof(mpz_t));
+
   /******************************************************/
   /*  Unit Tests for MPZ Code                           */
   /******************************************************/
@@ -451,6 +473,9 @@ int main(int argc, char **argv) {
   test_gcd("b66", "288", "2");
   test_gcd("288", "b66", "2");
   test_gcd("2a79e", "f663c", "6");
+
+  test_addeq_i("1234", 2, "1236");
+  test_addeq_i("1234", -2, "1232");
 
   gettimeofday(&end, NULL);
 

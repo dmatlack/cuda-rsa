@@ -625,4 +625,20 @@ __device__ __inline__ void mpz_pow(mpz_t *result, mpz_t *base, unsigned exponent
   }
 }
 
+/**
+ * @brief Compute a += i
+ */
+__device__ __inline__ void mpz_addeq_i(mpz_t *a, int i) {
+  if (0 == i) return;
+
+  if (i < 0) {
+    digits_complement(a->digits, a->capacity);
+    digits_add_across(a->digits, a->capacity, -i);
+    digits_complement(a->digits, a->capacity);
+  }
+  else {
+    digits_add_across(a->digits, a->capacity, i);
+  }
+}
+
 #endif /* __418_MPZ_H__ */
