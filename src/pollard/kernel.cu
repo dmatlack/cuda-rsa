@@ -6,7 +6,7 @@
 #include <time.h>
 #include <sys/time.h>
 
-#define NUM_BLOCKS 64
+#define NUM_BLOCKS 128
 #define THREADS_PER_BLOCK 32
 
 __constant__ unsigned c_table[TABLE_SIZE];
@@ -15,8 +15,8 @@ __global__
 void parallel_factorize_kernel(mpz_t n, unsigned *primes, volatile bool *finished,
                                mpz_t *result) {
   const unsigned tid = blockDim.x * blockIdx.x + threadIdx.x;
-  const unsigned bid = blockIdx.x;
   const unsigned threads = gridDim.x * blockDim.x;
+  const unsigned bid = blockIdx.x;
   // unsigned i = blockIdx.x * blockDim.x;
 
   const unsigned max_it = 320000;
@@ -24,38 +24,38 @@ void parallel_factorize_kernel(mpz_t n, unsigned *primes, volatile bool *finishe
   const unsigned b_start = B_START + bid;//bid * blockDim.x / max_it;
   const unsigned b_inc = gridDim.x;//threads / max_it;
 
+  unsigned B;
+  const unsigned B_MAX = TABLE_SIZE;
+  unsigned it;
+  unsigned p_i;
+  unsigned power;
+  unsigned prime_ul;
+
   mpz_t a, d, e, b, tmp;
+
   mpz_init(&a);
   mpz_init(&d);
   mpz_init(&e);
   mpz_init(&b);
   mpz_init(&tmp);
 
-  int count = 0;
-
-  unsigned B;
-  const unsigned B_MAX = TABLE_SIZE;
-
   // try a variety of a values
   mpz_set_ui(&a, (UL) tid + 2);
 
   for (B = b_start; B < B_MAX; B += b_inc) {
-    unsigned it;
 
-    if (*finished) return;
-    unsigned p_i;
-    unsigned power;
-    unsigned prime_ul = (UL) c_table[0];
-    mpz_set_ui(&e, (UL) 1);
+    /* Compute e as a product of prime powers */
+    prime_ul = (UL) c_table[0];
+    mpz_set_lui(&e, (UL) 1);
     for (p_i = 0; prime_ul < B; p_i ++) {
-      // if (*finished) return;
-      power = (unsigned) (log((double) B) /
-                          log((double) prime_ul));
+      if (*finished) return;
 
-      mpz_mult_u(&tmp, &e, (unsigned) pow((double) prime_ul, (double) power)); // tmp = e * p ** power
-      // if (*finished) return;
-      mpz_set(&e, &tmp);        // e = tmp
+      power = (unsigned) (log((double) B) / log((double) prime_ul));
+      mpz_mult_u(&tmp, &e, (unsigned) pow((double) prime_ul, (double) power));
 
+      if (*finished) return;
+
+      mpz_set(&e, &tmp);
       prime_ul = c_table[p_i + 1];
     }
 
@@ -64,7 +64,6 @@ void parallel_factorize_kernel(mpz_t n, unsigned *primes, volatile bool *finishe
 
     for (it = 0; it < max_it; it ++) {
       // printf("it = %d\n", it);
-      count ++;
 
       if (*finished) return;
 
