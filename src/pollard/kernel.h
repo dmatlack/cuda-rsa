@@ -7,7 +7,7 @@
 
 #define UL unsigned long
 
-int factorize(UL n, unsigned *table, mpz_t *factor);
+int factorize(mpz_t *n, unsigned *table, mpz_t *factor);
 
 int generate_prime_table(unsigned **d_table);
 

@@ -17,20 +17,26 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
+  mpz_t n;
   mpz_t factor;
+
   mpz_init(&factor);
+  mpz_init(&n);
 
   struct timeval start, end;
 
   unsigned num_to_factor;
   for (num_to_factor = 1; (int) num_to_factor < argc; num_to_factor ++) {
+    mpz_init(&n);
 
-    UL n = (UL) atol(argv[num_to_factor]);
-    printf("%lu: ", n);
+    char *num_str = argv[num_to_factor];
+    mpz_set_str(&n, num_str);
+    
+    printf("Factoring 0x%s: ", num_str);
 
     gettimeofday(&start, NULL);
 
-    if (0 == factorize(n, d_table, &factor)) {
+    if (0 == factorize(&n, d_table, &factor)) {
       char factor_str[1024];
 
       gettimeofday(&end, NULL);
@@ -38,7 +44,7 @@ int main(int argc, char *argv[]) {
         (start.tv_sec * 1000 * 1000 + start.tv_usec);
 
       mpz_get_str(&factor, factor_str, 1024);
-      printf("%lu (in %ld us)\n", strtol(factor_str, NULL, 16), elapsed_us);
+      printf("0x%s (in %ld us)\n", factor_str, elapsed_us);
     }
     else {
       printf("unable to find factor\n");
