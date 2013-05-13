@@ -78,10 +78,9 @@ int serial_factorize(mpz_t n, unsigned *primes, unsigned num_primes,
         return 0;
       }
 
-      mpz_powmod(&b, &a, &e, &n);  // b = (a ** e) % n
-      mpz_sub(&tmp, &b, &MPZ_ONE); // tmp = b - 1
-      mpz_gcd(&d, &tmp, &n);       // d = gcd(tmp, n)
-
+      mpz_powmod(&b, &a, &e, &n); // b = (a ** e) % n
+      mpz_addeq_i(&b, -1);        // b -= 1
+      mpz_gcd(&d, &b, &n);        // d = gcd(b, n)
 
       /* char buf[1024]; */
       /* mpz_get_str(&b, buf, 1024); */
@@ -107,8 +106,7 @@ int serial_factorize(mpz_t n, unsigned *primes, unsigned num_primes,
       mpz_add(&tmp_2, &tmp, &a);            // tmp_2 = &tmp + a
       mpz_div(&tmp, &a, &tmp_2, &n);        // a = tmp_2 % n
 #else
-      mpz_add(&tmp, &a, &MPZ_ONE);
-      mpz_set(&a, &tmp);
+      mpz_addeq_i(&a, 1);       /* a += 1 */
 #endif
     }
   }

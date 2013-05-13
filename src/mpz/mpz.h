@@ -295,7 +295,8 @@ __device__ __host__ inline void mpz_mult(mpz_t *dst, mpz_t *op1, mpz_t *op2) {
   CHECK_MEM(op1,   capacity);
   CHECK_MEM(op2,   capacity);
 
-  digits_set_zero(dst->digits);
+  /* Done by long_multiplication */
+  /* digits_set_zero(dst->digits); */
 
   /* We pass in capacity as the number of digits rather that the actual
    * number of digits in each mpz_t struct. This is done because the
@@ -422,10 +423,10 @@ __device__ __host__ inline void mpz_print(mpz_t *mpz) {
 #endif
 }
 
-__device__ __host__ inline void mpz_set_bit(mpz_t *mpz, unsigned bit_offset, 
+__device__ __host__ inline void mpz_set_bit(mpz_t *mpz, unsigned bit_offset,
                                             unsigned bit) {
   digits_set_bit(mpz->digits, bit_offset, bit);
-   
+
   if (MPZ_NEGATIVE == mpz->sign && bit == 0 &&
       digits_is_zero(mpz->digits, mpz->capacity)) {
     mpz->sign = MPZ_NONNEGATIVE;
@@ -445,33 +446,25 @@ __device__ __host__ inline void mpz_bit_lshift(mpz_t *mpz) {
  *
  *
  */
-__device__ __host__ inline void mpz_div(mpz_t *q, mpz_t *r, mpz_t *N, mpz_t *D) {
-  unsigned n_digit_count = digits_count(N->digits);
+__device__ __host__ inline void mpz_div(mpz_t *q, mpz_t *r, mpz_t *n, mpz_t *d) {
+  unsigned n_digit_count = digits_count(n->digits);
   unsigned num_bits;
-  mpz_t n;
-  mpz_t d;
   mpz_t tmp;
   int i;
-  int nsign = N->sign;
-  int dsign = D->sign;
-
-  (void)r;
+  int nsign = n->sign;
+  int dsign = d->sign;
 
   num_bits = n_digit_count * LOG2_DIGIT_BASE;
 
-  mpz_init(&n);
-  mpz_init(&d);
   mpz_init(&tmp);
 
-  mpz_set(&n, N);
-  mpz_set(&d, D);
   mpz_set_i(q, 0);
   mpz_set_i(r, 0);
 
-  if (MPZ_NEGATIVE == n.sign) n.sign = MPZ_NONNEGATIVE;
-  if (MPZ_NEGATIVE == d.sign) d.sign = MPZ_NONNEGATIVE;
+  n->sign = MPZ_NONNEGATIVE;
+  d->sign = MPZ_NONNEGATIVE;
 
-  if (mpz_gt(&n, &d)) {
+  if (mpz_gt(n, d)) {
 
     for (i = num_bits - 1; i >= 0; i--) {
       unsigned n_i;
@@ -480,19 +473,19 @@ __device__ __host__ inline void mpz_div(mpz_t *q, mpz_t *r, mpz_t *N, mpz_t *D) 
       mpz_bit_lshift(r);
 
       // r(0) = n(i)
-      n_i = digits_bit_at(n.digits, i);
+      n_i = digits_bit_at(n->digits, i);
       mpz_set_bit(r, 0, n_i);
 
       // if (r >= d)
-      if (mpz_gte(r, &d)) {
+      if (mpz_gte(r, d)) {
         // r = r - d
-        mpz_sub(&tmp, r, &d);
+        mpz_sub(&tmp, r, d);
         mpz_set(r, &tmp);
 
         // q(i) = 1
         //printf("Setting bit %d of q to 1\n", i);
         //printf("\tBefore: "); mpz_print(q); printf("\n");
-        mpz_set_bit(q, i, 1); 
+        mpz_set_bit(q, i, 1);
         //printf("\tAfter: "); mpz_print(q); printf("\n");
       }
     }
@@ -507,16 +500,16 @@ __device__ __host__ inline void mpz_div(mpz_t *q, mpz_t *r, mpz_t *N, mpz_t *D) 
     // quotient = 0
     mpz_set_i(q, 0);
     // remainder = numerator
-    mpz_set(r, &n);
+    mpz_set(r, n);
   }
 
-  n.sign = nsign;
-  d.sign = dsign;
+  n->sign = nsign;
+  d->sign = dsign;
 
   CHECK_SIGN(q);
   CHECK_SIGN(r);
-  CHECK_SIGN(N);
-  CHECK_SIGN(D);
+  CHECK_SIGN(n);
+  CHECK_SIGN(d);
 }
 
 /**
