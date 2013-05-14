@@ -46,7 +46,7 @@ Project Code: <a href="https://github.com/dmatlack/cuda-rsa">github</a>
 </tr>
 <tr>
   <td>Apr 8-14</td>
-  <td>&nbsp;Create proposal, choose algorithm, choose/implement multiple precision 
+  <td>&nbsp;Create proposal, choose algorithm, choose/implement multiple precision
     library</td>
   <td>&nbsp;Wrote proposal, investigated Pollard's p - 1 algorithm as well as the
     elliptic curve method for factorization.  Decided, based on promising results as
@@ -69,9 +69,12 @@ Project Code: <a href="https://github.com/dmatlack/cuda-rsa">github</a>
 </tr>
 <tr>
   <td>Apr 29-May 5</td>
-  <td>&nbsp;Finish work on MP library and adapt GPU factor code to use MP library. 
+  <td>&nbsp;Finish work on MP library and adapt GPU factor code to use MP library.
   <br>&nbsp;Profile code, create test suite and begin comparing to standards
-  </td>
+  </td>&nbsp;Major refactor of MP library, addition of factorization specific
+  operations.<br
+  &nbsp;Port of GPU code to our MP library lots of debugging... trying
+  to figure out why it runs so slow.
   <td/></td>
 </tr>
 <tr>
@@ -79,7 +82,8 @@ Project Code: <a href="https://github.com/dmatlack/cuda-rsa">github</a>
   <td>&nbsp;Consider optimizations, reworks for specific GPU architecture<br>
     &nbsp;Implement RSA cracking, using factorization algorithm, evaluate viability
     of stretch goals</td>
-  <td></td>
+  <td>&nbsp;Restructuring of GPU algorithm, lots of tweaking, and testing.
+  </td>
 </tr>
 </table>
 </p>
@@ -87,9 +91,13 @@ Project Code: <a href="https://github.com/dmatlack/cuda-rsa">github</a>
 <div class="section">Working Log</div>
 
 <ul>
+  <li>05/12 - AJ/David - Work on presentation and final report</li>
+  <li>05/09-11 - AJ/David - Testing on GPU, profiling, optimizing MP library and GPU algorithm</li>
   <li>05/07 - David - MP library complete and tested</li>
   <li>05/06 - David - Implemented division, modulus, power-mod</li>
   <li>05/06 - David - Changed MP library to static memory</li>
+  <li>05/04 - AJ - Refactored GPU algorithm to use MP library</li>
+  <li>04/29 - AJ - Implemented basic GPU version, using unsigneds</li>
   <li>04/26 - AJ/David - Worked on Checkpoint writeup</li>
   <li>04/26 - AJ - Started implementing Pollard p-1 on GPU</li>
   <li>04/25 - David - Implemented multiplication</li>
@@ -106,7 +114,7 @@ Project Code: <a href="https://github.com/dmatlack/cuda-rsa">github</a>
 </ul>
 
 <p>A more detailed worklog with more ranting can be found in the commit history
-of our github repo for this project 
+of our github repo for this project
 <a href="https://github.com/dmatlack/cuda-rsa/commits">here</a>.
 
 </div>
