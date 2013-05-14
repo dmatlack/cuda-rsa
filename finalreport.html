@@ -24,55 +24,176 @@
 
 <div style="padding-top: 1em;"><a href="index.html">Main Project Page</a></div>
 
-<div class="section">Background</div>
+<div class="section">Summary</div>
 
-<p>We implemented Pollard's p-1 Algorithm to factor large integers using CUDA 
-to run on the GPU. Our project codebase includes:
+<p>The goal of this project was to explore parallelizing Pollard's p-1
+Algorithm for factorization. We implemented Pollard's p-1 Algorithm to 
+factor large integers using CUDA. Our project codebase includes:
   <ul>
-    <li>A multiple precision integer library for CUDA.<li>
-    <li>The implementation of Pollard's p-1 which runs on top of the multiple
+    <li>A multiple precision integer library for CUDA.</li>
+    <li>An implementation of Pollard's p-1 in CUDA which runs on top of the multiple
+    precision library.</li>
+    <li>An implementation of Pollard's p-1 on the CPU which runs on top of the multiple
     precision library.</li>
   </ul>
 </p>
 
 <div class="section">Background</div>
 
-<p>There are many algorithms designed to factor large prime numbers quickly.
-Pollard's p-1 Algorithm takes advantage of Fermat's Little Theorem to find
-factors of a compound number n. The algorithm is not inherently parallel and
-is limited in the number of factors it can find as the size of n increases.
-A better, and inherently parallel algorithm, is Lenstra's Elliptic Curve
-algorithm. It's inherent parallelism makes it an attractive algorithm but it is
-quite complicated.</p>
+<h3>Pollard's p-1 Algorithm</h3>
 
-<p>One application of finding prime factors is in RSA
-RSA is a popular asymmetric cryptographic algorithm. An asymmetric cryptographic
-algorithm is one that uses two different keys, one public and one private, to encrypt
-and decrypt messages. Thus in order to break RSA, we must determine the private key
-from the public key. In RSA, the public key is a tuple (n, e) where n is a large
-number with two large prime factors, p and q. The private key is d. If we can compute
-p and q from n, then we can determine d. Thus beging able to find the prime factors
-of large numbers is the key to breaking RSA. More information on the algorithm can
-be found on the <a href="http://en.wikipedia.org/wiki/RSA_(algorithm)">Wikipedia</a>
-page for RSA.</p>
+<p>Pollard's p-1 Algorithm takes advantage of Fermat's Little Theorem to find
+factors of a compound number n. It is typically used in conjunction with
+other factorization algorithms to find factors of arbitrary numbers. In our
+project, we only consider the p-1 algorithm and how to parallelize it. Before
+discussing implementation and parallelization details, here is the basic 
+algorithm:</p>
 
-TODO: In depth detail on algorithm, data structures (mp library), figures.
+<p><strong>Inputs:</strong> <code>N</code>: a composite integer</p>
+<p><strong>Outputs:</strong> a non-trivial factor of <code>N</code> or failure</p>
+
+<ol>
+  <li> select a smoothness bound <code>B</code> </li>
+  <li> <code>E = product( q^(log B / log q) )</code> for all primes 
+  <code>q &lt;= B</code> </li>
+  <li> randomly pick <code>a</code> coprime to <code>N</code> </li>
+  <li> <code>g = gcd(a^E - 1, N)</code> </li>
+  <li> if <code>1 &lt; g &lt; N</code> then return <code>g</code> </li>
+  <li> if <code>g = 1</code> then select a higher <code>B</code> and go to step 
+  2 or return failure </li>
+  <li> if <code>g = N</code> then go to step 2 or return failure </li>
+</ol>
+
+<p>As we can see, the algorithm is not guaranteed to find a factor. In fact
+we can state that the algorithm will only find very specific factors of N.
+If p is a factor of N, then Pollard's p-1 algorithm will only find p if
+p-1 is <a href="http://en.wikipedia.org/wiki/Smooth_number#Powersmooth_numbers">
+B-Powersmooth</a>. For the purposes of this project, we do not concern ourselves
+with the task finding all factors of N, just parallelizing the algorithm in 
+CUDA.</p>
+
+<p>We can break an iteration of the algorithm into two parts, and both are very 
+computationally expensive. The first part is computing E, the product of prime powers.
+In this step we must compute (or lookup) primes, raise them to a power, and
+multiply them together. The next major part is steps 3 to 6 where we pick a 
+base, a, and try to find a factor using it. While it may seem appealing to
+speed up these computations with parallelization, we decided to take a different
+approach. Instead of parallelizing each iteration of the algorithm, we parallelize
+across iterations of the algorithm. Thus we aimed to distribute different (a, B)
+tuples across CUDA threads to try and find a factor.</p>
+
+<h3>Multiple Precision</h3>
+
+<p>Factoring algorithms are not interesting unless they are factoring large 
+numbers. We knew wanted to factor numbers of at least 64 bits. Since the 
+largest integer type in CUDA is an unsigned long (64 bits), it would seem we
+could just use primitives. However we soon discovered that the exponent E grew 
+rapidly with B. And so to factor any interesting numbers, we needed to represent
+numbers larger than 64 bits. We searched far and wide for a multiple precision 
+library similar to <a href="http://gmplib.org/">GMP</a> for CUDA, but came up 
+empty handed. Thus we needed to write a multiple precision library ourselves.</p>
+
+<p>The following details the design of our multiple precision library:</p>
+
+<ol>
+  <li>
+  Integers are represented as arrays of unsigned ints. We can think of this
+  array as base 2^32 digits, or just binary. This design decision allowed us
+  to utilize memory efficiently and take advantage of some algorithms that
+  require numbers to be stored in binary notation.
+  </li>
+  <li>
+  The library source code is structured so that it can be compiled by both 
+  gcc and nvcc. This allows us to run the same code on the CPU and GPU to
+  test for correctness and do performance comparisons.
+  </li>
+  <li>
+  All memory used by multiple precision integers (mpz_t structs) is allocated
+  statically. This is a must when we want all our CUDA threads do be doing 
+  many expensive multiple precision operations. Thus our library multiple
+  precision, but arbitrary precision (at runtime, at least).
+  </li>
+  <li>
+  Supported operations are addition, subtraction, multiplication, division,
+  modulus, power, power-mod (e.g. a^e (mod n)), gcd, and comparison.
+  </li>
+</ol>
+
+<p>As an aside, the Multiple Precision library was a huge technical undertaking. 
+Most
+of our development time was spent learning multiple precision algorithms,
+implmenting them, and testing them. In addition, most of our implmentations
+were unoptimized or only implemented the naive algorithm. It would have been
+nice to have been able to dedicate more time to exploring more of the Pollard
+algorithm or other factorization algorithms instead, but in the end we came
+out with a relatively robust library.</p>
 
 <div class="section">Approach</div>
 
-TODO
+<h3>Multiple Precision Optimizations and Changes</h3>
+
+<p>The MP library went through many optimizations and changes as we began 
+running it on CUDA. The first major change was to fix the number 
+representation. We started out representing numbers as arrays of characters
+where each character was a decimal digit. This is extremely inefficient m
+memory-wise, and it makes implementing certain algorithms like powmod
+difficult. Thus we changed the MP library to use arrays of unsigned integers
+and thus numbers were just represented in binary. We also spent a good deal of 
+time eliminating as much memory overhead as possible in MP functions.</p>
+
+<p>The MP library uses some interesting algorithms to do computation efficiently.
+One is the exponentiation-by-squaring algorithm which is used to compute
+a^b (mod n) efficiently. Addition and subtraction are implmented using two's
+complement. We aimed to implement karatsuba for multiplication but never had
+the time (we are currently using the O(n^2) gradeschool algorithm).</p>
 
 <div class="section">Results</div>
 
-<p>Currently we are able to factor integers on the GPU and are working on 
-parallelizing the algorithm.</p>
+The following are the results (runtimes) of our implementation. 
+<img src="results.png"></img><br/>
+<ul>
+  <li>
+  <strong>CUDA</strong>: Our CUDA implementation of Pollard's p-1 algorithm which
+  uses our MP library.
+  </li>
+  <li>
+  <strong>CPU CMP</strong>: Our CPU implementation of Pollard's p-1 algorithm which
+  uses our MP library.
+  </li>
+  <li>
+  <strong>CPU GMP</strong>: The same CPU implmentation of Pollard's p-1 algorithm
+  except using the GNU MP library.
+  </li>
+</ul>
+
+<img src="cuda_cpu.png"></img><br/>
+<p>The CUDA implementation of the algorithm outperformed the CPU implementation on all
+inputs. While both are using Pollard's p-1 algorithm, they are implmented slightly
+differently in order to optimize for environment. We got the CPU implementation
+from <a href="http://www.frenchfries.net/paul/factoring/source.html">here</a> and
+ported it to our MP library. While simply comparing the GPU to the CPU is not 
+always useful, we argue that the above result demonstrates the success in our
+parallelization. We outperformed the CPU becuase we were able to parallelize
+the algorithm for CUDA threads.</p>
+
+<p>The original idea for this project came from a <a href="reference/lin.pdf">paper</a>
+that was trying to accomplish the same goal, parallelize Pollard's p-1 algorithm on the
+GPU. We ended up implementing our CUDA kernel differently from theirs. As it turns out,
+our implementation runs faster for roughly equivalent GPUs (we were using a GTX 480 and
+they were using a Tesla C2050). Their best time for the RSA-64 input was about 40
+seconds according to the paper, while ours found a factor in 5.99 seconds. Of course,
+we do not know what kind of Multiple Precision library they used so it may not be fair
+to make comparisons.</p>
+
 
 <div class="section">References</div>
   <ul>
     <li><a href="reference/lin.pdf">Efficient Paralle RSA Decryption Algorithm 
 for Many-Core GPUs with CUDA</a></li>
-    <li>FIXME: bignum library reference</li>
-    <li>FIXME: pollard algorithm reference</li>
+    <li><a href="http://www.frenchfries.net/paul/factoring/source.html">
+      An Implementation of Pollard's p-1 using GMP</a></li>
+    <li><a href="http://programmingpraxis.com/2009/07/21/pollards-p-1-factorization-algorithm/">
+      programmingpraxis.com's take on Pollard's p-1 Algorithm</li>
   </ul> 
 
 </div>

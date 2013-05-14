@@ -10,6 +10,9 @@ Approach
   - Tweaking to get better performance (AJ)
 
 Results
+
+*** Talk about changing 10 to 2^32
+
   - How are we gaging performance (AJ)
   - describe GPU v CPU graph (David)
   - describe GPU v GMP graph (AJ)
